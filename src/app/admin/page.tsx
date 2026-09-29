@@ -2,12 +2,13 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import * as XLSX from 'xlsx'
-import { supabase, ReliefRegistration } from '@/lib/supabase'
+import { supabase, ReliefRegistration, isSelfPickup } from '@/lib/supabase'
 import {
   Search, Filter, RefreshCw, X, Eye, MapPin, Phone, User, Clock,
   CheckCircle, Loader2, Lock, ExternalLink, Truck, Waves, AlertCircle,
   ChevronDown, Users, TrendingUp, Hash, Trash2, Download, CheckSquare,
   Square, MinusSquare, GraduationCap, BookOpen, ArrowLeftRight, Ship, Car, Footprints,
+  Building2, Package,
 } from 'lucide-react'
 
 // ── Constants ────────────────────────────────────────────────────────────
@@ -28,29 +29,33 @@ const ACCESS_LABELS: Record<string, { label: string; Icon: React.ElementType; co
 
 // ── Excel Export ─────────────────────────────────────────────────────────
 function exportToExcel(records: ReliefRegistration[]) {
-  const rows = records.map((r, i) => ({
-    'ลำดับ': i + 1,
-    'รหัสเคส': r.id.slice(0, 8).toUpperCase(),
-    'รหัสนักศึกษา': (r as any).student_id ?? '-',
-    'ชื่อ-นามสกุล': r.full_name,
-    'คณะ': (r as any).faculty ?? '-',
-    'สาขา': (r as any).major ?? '-',
-    'เบอร์โทร': r.phone,
-    'Line ID': r.line_id ?? '-',
-    'ที่อยู่': r.address,
-    'อำเภอ': r.district ?? '-',
-    'จุดสังเกต': r.landmark ?? '-',
-    'Google Maps': r.google_maps_link ?? '-',
-    'สภาพเส้นทาง': ACCESS_LABELS[r.access_condition]?.label ?? r.access_condition,
-    'สถานะ': STATUS_CONFIG[r.status]?.label ?? r.status,
-    'วันที่ลงทะเบียน': new Date(r.created_at).toLocaleString('th-TH'),
-  }))
+  const rows = records.map((r, i) => {
+    const isSelf = isSelfPickup(r)
+    return {
+      'ลำดับ': i + 1,
+      'รหัสเคส': r.id.slice(0, 8).toUpperCase(),
+      'รูปแบบการรับ': isSelf ? 'รับเองที่กองพัฒนานักศึกษา' : 'ลงพื้นที่ส่งมอบ',
+      'รหัสนักศึกษา': (r as any).student_id ?? '-',
+      'ชื่อ-นามสกุล': r.full_name,
+      'คณะ': (r as any).faculty ?? '-',
+      'สาขา': (r as any).major ?? '-',
+      'เบอร์โทร': r.phone,
+      'Line ID': r.line_id ?? '-',
+      'ที่อยู่': r.address,
+      'อำเภอ': r.district ?? '-',
+      'จุดสังเกต': r.landmark ?? '-',
+      'Google Maps': r.google_maps_link ?? '-',
+      'สภาพเส้นทาง': isSelf ? 'เดินมารับเองที่กองพัฒน์ฯ' : (ACCESS_LABELS[r.access_condition]?.label ?? r.access_condition),
+      'สถานะ': STATUS_CONFIG[r.status]?.label ?? r.status,
+      'วันที่ลงทะเบียน': new Date(r.created_at).toLocaleString('th-TH'),
+    }
+  })
   const ws = XLSX.utils.json_to_sheet(rows)
   // Column widths
   ws['!cols'] = [
-    { wch: 6 }, { wch: 10 }, { wch: 16 }, { wch: 22 }, { wch: 28 }, { wch: 40 },
+    { wch: 6 }, { wch: 10 }, { wch: 24 }, { wch: 16 }, { wch: 22 }, { wch: 28 }, { wch: 40 },
     { wch: 14 }, { wch: 16 }, { wch: 40 }, { wch: 18 }, { wch: 24 },
-    { wch: 40 }, { wch: 16 }, { wch: 16 }, { wch: 22 },
+    { wch: 40 }, { wch: 22 }, { wch: 16 }, { wch: 22 },
   ]
   const wb = XLSX.utils.book_new()
   XLSX.utils.book_append_sheet(wb, ws, 'ข้อมูลผู้ลงทะเบียน')
@@ -157,8 +162,42 @@ function DetailModal({
             </span>
           </div>
 
+          {/* Delivery Method Banner */}
+          {isSelfPickup(record) ? (
+            <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-4 flex items-start gap-3">
+              <div className="w-10 h-10 rounded-xl bg-emerald-600 text-white flex items-center justify-center flex-shrink-0 shadow-sm">
+                <Building2 size={20} />
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-2">
+                  <span className="px-2.5 py-0.5 bg-emerald-600 text-white text-xs font-bold rounded-md">
+                    รับสิ่งของที่กองพัฒนานักศึกษา
+                  </span>
+                  <span className="text-xs text-emerald-700 font-semibold">(ไม่ต้องลงพื้นที่)</span>
+                </div>
+                <p className="text-xs text-emerald-800 leading-relaxed font-medium mt-1">
+                  ผู้ขอรับความช่วยเหลือจะเดินทางมารับสิ่งของด้วยตนเอง ณ กองพัฒนานักศึกษา อาคาร 1 มรภ.พระนครศรีอยุธยา (โทร. 035-221-222)
+                </p>
+              </div>
+            </div>
+          ) : (
+            <div className="bg-blue-50 border border-blue-200 rounded-2xl p-4 flex items-start gap-3">
+              <div className="w-10 h-10 rounded-xl bg-blue-600 text-white flex items-center justify-center flex-shrink-0 shadow-sm">
+                <Truck size={20} />
+              </div>
+              <div className="min-w-0 flex-1">
+                <span className="px-2.5 py-0.5 bg-blue-600 text-white text-xs font-bold rounded-md">
+                  ประสงค์ให้ลงพื้นที่ส่งมอบ
+                </span>
+                <p className="text-xs text-blue-800 leading-relaxed font-medium mt-1">
+                  ทีมงานนำสิ่งของยังชีพไปส่งมอบให้ถึงบ้าน/ที่พักตามพิกัดและข้อมูลที่อยู่ด้านล่าง
+                </p>
+              </div>
+            </div>
+          )}
+
           {/* House Photo */}
-          {record.image_url && (
+          {record.image_url && !isSelfPickup(record) && (
             <div className="rounded-2xl overflow-hidden border border-gray-200 shadow-sm">
               <img src={record.image_url} alt="สภาพบ้าน" className="w-full h-52 object-cover" />
               <div className="px-3 py-2 bg-gray-50 text-xs text-gray-500 flex items-center gap-1">
@@ -169,6 +208,11 @@ function DetailModal({
 
           {/* Info Grid */}
           <div className="grid grid-cols-2 gap-4 bg-gray-50 rounded-2xl p-4">
+            <InfoRow
+              icon={isSelfPickup(record) ? <Building2 size={14} className="text-emerald-600" /> : <Truck size={14} className="text-blue-600" />}
+              label="รูปแบบการรับ"
+              value={isSelfPickup(record) ? '🏢 รับเองที่กองพัฒน์ฯ' : '🚚 ให้ลงพื้นที่ส่งของ'}
+            />
             <InfoRow icon={<GraduationCap size={14} className="text-maroon-600" />} label="ประเภท"
               value={(record as any).faculty ? '🎓 นักศึกษา' : record.user_type === 'student' ? '🎓 นักศึกษา' : '🏘️ ประชาชน'} />
             {record.student_id && (
@@ -189,7 +233,7 @@ function DetailModal({
             <InfoRow
               icon={<AccessIcon size={14} className={access?.color ?? 'text-gray-500'} />}
               label="การเข้าถึง"
-              value={access?.label ?? record.access_condition}
+              value={isSelfPickup(record) ? 'เดินมารับที่กองพัฒน์ฯ' : (access?.label ?? record.access_condition)}
             />
           </div>
 
@@ -400,6 +444,7 @@ export default function AdminPage() {
   const [bulkLoading, setBulkLoading] = useState(false)
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<string>('all')
+  const [deliveryFilter, setDeliveryFilter] = useState<'all' | 'delivery' | 'self_pickup'>('all')
   const [selected, setSelected] = useState<ReliefRegistration | null>(null)
   const [checkedIds, setCheckedIds] = useState<Set<string>>(new Set())
 
@@ -447,12 +492,17 @@ export default function AdminPage() {
   // ── Filtering ──
   const filtered = records.filter((r) => {
     const matchStatus = statusFilter === 'all' || r.status === statusFilter
+    const isSelf = isSelfPickup(r)
+    const matchDelivery =
+      deliveryFilter === 'all' ||
+      (deliveryFilter === 'self_pickup' && isSelf) ||
+      (deliveryFilter === 'delivery' && !isSelf)
     const q = search.toLowerCase()
     const matchSearch = !q || r.full_name.toLowerCase().includes(q) ||
       (r.student_id?.toLowerCase().includes(q) ?? false) ||
       (r.district?.toLowerCase().includes(q) ?? false) || r.phone.includes(q) ||
       ((r as any).faculty?.toLowerCase().includes(q) ?? false)
-    return matchStatus && matchSearch
+    return matchStatus && matchDelivery && matchSearch
   })
 
   // ── Stats ──
@@ -461,6 +511,8 @@ export default function AdminPage() {
     pending: records.filter((r) => r.status === 'pending').length,
     in_progress: records.filter((r) => r.status === 'in_progress').length,
     completed: records.filter((r) => r.status === 'completed').length,
+    delivery: records.filter((r) => !isSelfPickup(r)).length,
+    self_pickup: records.filter((r) => isSelfPickup(r)).length,
   }
 
   // ── Single status change ──
@@ -649,23 +701,83 @@ export default function AdminPage() {
         )}
 
         {/* Filters */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 flex flex-col sm:flex-row gap-3">
-          <div className="relative flex-1">
-            <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
-            <input id="admin-search" type="text" value={search} onChange={(e) => setSearch(e.target.value)}
-              placeholder="ค้นหาชื่อ, รหัสนักศึกษา, คณะ, อำเภอ, เบอร์โทร..."
-              className="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-200 text-sm outline-none focus:ring-2 focus:ring-maroon-500 focus:border-transparent" />
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 space-y-3">
+          <div className="flex flex-col sm:flex-row gap-3">
+            <div className="relative flex-1">
+              <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+              <input id="admin-search" type="text" value={search} onChange={(e) => setSearch(e.target.value)}
+                placeholder="ค้นหาชื่อ, รหัสนักศึกษา, คณะ, อำเภอ, เบอร์โทร..."
+                className="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-200 text-sm outline-none focus:ring-2 focus:ring-maroon-500 focus:border-transparent" />
+            </div>
+
+            {/* Delivery Method Filter Dropdown */}
+            <div className="relative">
+              <Package size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+              <select
+                id="admin-delivery-filter"
+                value={deliveryFilter}
+                onChange={(e) => setDeliveryFilter(e.target.value as any)}
+                className="pl-10 pr-10 py-3 rounded-xl border border-gray-200 text-sm outline-none focus:ring-2 focus:ring-maroon-500 appearance-none min-w-[200px] cursor-pointer bg-white"
+              >
+                <option value="all">ทุกรูปแบบการรับ ({records.length})</option>
+                <option value="delivery">🚚 ลงพื้นที่ส่งมอบ ({stats.delivery})</option>
+                <option value="self_pickup">🏢 รับที่กองพัฒน์ฯ ({stats.self_pickup})</option>
+              </select>
+              <ChevronDown size={14} className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+            </div>
+
+            {/* Status Filter */}
+            <div className="relative">
+              <Filter size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+              <select id="admin-status-filter" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}
+                className="pl-10 pr-10 py-3 rounded-xl border border-gray-200 text-sm outline-none focus:ring-2 focus:ring-maroon-500 appearance-none min-w-[160px] cursor-pointer bg-white">
+                <option value="all">ทุกสถานะ ({records.length})</option>
+                <option value="pending">รอดำเนินการ ({stats.pending})</option>
+                <option value="in_progress">กำลังดำเนินการ ({stats.in_progress})</option>
+                <option value="completed">เสร็จสิ้น ({stats.completed})</option>
+              </select>
+              <ChevronDown size={14} className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+            </div>
           </div>
-          <div className="relative">
-            <Filter size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
-            <select id="admin-status-filter" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}
-              className="pl-10 pr-10 py-3 rounded-xl border border-gray-200 text-sm outline-none focus:ring-2 focus:ring-maroon-500 appearance-none min-w-[160px] cursor-pointer bg-white">
-              <option value="all">ทุกสถานะ</option>
-              <option value="pending">รอดำเนินการ</option>
-              <option value="in_progress">กำลังดำเนินการ</option>
-              <option value="completed">เสร็จสิ้น</option>
-            </select>
-            <ChevronDown size={14} className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+
+          {/* Quick Pill Tabs for Delivery Filter */}
+          <div className="flex flex-wrap items-center gap-2 pt-1 border-t border-gray-100 text-xs">
+            <span className="text-gray-400 font-medium mr-1 flex items-center gap-1">
+              <Package size={13} /> ตัวกรองการรับ:
+            </span>
+            <button
+              type="button"
+              onClick={() => setDeliveryFilter('all')}
+              className={`px-3 py-1.5 rounded-xl font-semibold border transition-all ${
+                deliveryFilter === 'all'
+                  ? 'bg-maroon-700 text-white border-maroon-700 shadow-sm'
+                  : 'bg-gray-50 text-gray-600 border-gray-200 hover:bg-gray-100'
+              }`}
+            >
+              ทั้งหมด ({records.length})
+            </button>
+            <button
+              type="button"
+              onClick={() => setDeliveryFilter('delivery')}
+              className={`px-3 py-1.5 rounded-xl font-semibold border transition-all flex items-center gap-1.5 ${
+                deliveryFilter === 'delivery'
+                  ? 'bg-blue-600 text-white border-blue-600 shadow-sm'
+                  : 'bg-blue-50/60 text-blue-700 border-blue-200 hover:bg-blue-100/70'
+              }`}
+            >
+              <Truck size={13} /> 🚚 ประสงค์ให้ลงพื้นที่ ({stats.delivery})
+            </button>
+            <button
+              type="button"
+              onClick={() => setDeliveryFilter('self_pickup')}
+              className={`px-3 py-1.5 rounded-xl font-semibold border transition-all flex items-center gap-1.5 ${
+                deliveryFilter === 'self_pickup'
+                  ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm'
+                  : 'bg-emerald-50/60 text-emerald-700 border-emerald-200 hover:bg-emerald-100/70'
+              }`}
+            >
+              <Building2 size={13} /> 🏢 รับเองที่กองพัฒนานักศึกษา ({stats.self_pickup})
+            </button>
           </div>
         </div>
 
@@ -679,7 +791,7 @@ export default function AdminPage() {
           ) : filtered.length === 0 ? (
             <div className="text-center py-24 text-gray-400">
               <Waves size={40} className="mx-auto mb-3 opacity-30" />
-              <p className="font-medium">ไม่พบข้อมูล</p>
+              <p className="font-medium">ไม่พบข้อมูลที่ตรงกับเงื่อนไข</p>
             </div>
           ) : (
             <div className="overflow-x-auto">
@@ -696,7 +808,7 @@ export default function AdminPage() {
                           : <Square size={18} />}
                       </button>
                     </th>
-                    {['#', 'ชื่อ-นามสกุล', 'รหัสนักศึกษา', 'คณะ / สาขา', 'โทรศัพท์', 'อำเภอ', 'เส้นทาง', 'สถานะ', 'แผนที่', 'วันที่', ''].map((h) => (
+                    {['#', 'ชื่อ-นามสกุล', 'รหัสนักศึกษา', 'คณะ / สาขา', 'โทรศัพท์', 'รูปแบบการรับ', 'อำเภอ / สถานที่', 'เส้นทาง', 'สถานะ', 'แผนที่', 'วันที่', ''].map((h) => (
                       <th key={h} className="px-3 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider whitespace-nowrap">{h}</th>
                     ))}
                   </tr>
@@ -706,6 +818,7 @@ export default function AdminPage() {
                     const isChecked = checkedIds.has(r.id)
                     const access = ACCESS_LABELS[r.access_condition]
                     const AccIcon = access?.Icon ?? Truck
+                    const isSelf = isSelfPickup(r)
                     return (
                       <tr key={r.id} className={`transition-colors cursor-pointer ${isChecked ? 'bg-maroon-50' : 'hover:bg-gray-50/60'}`}
                         onClick={() => setSelected(r)}>
@@ -743,12 +856,40 @@ export default function AdminPage() {
                           <a href={`tel:${r.phone}`} className="text-maroon-700 hover:underline font-mono text-xs whitespace-nowrap"
                             onClick={(e) => e.stopPropagation()}>{r.phone}</a>
                         </td>
-                        <td className="px-3 py-3 text-gray-600 text-xs whitespace-nowrap">{r.district || '-'}</td>
-                        <td className="px-3 py-3">
-                          <span className={`flex items-center gap-1 text-xs font-medium ${access?.color ?? 'text-gray-500'}`}>
-                            <AccIcon size={13} /> {access?.label ?? r.access_condition}
-                          </span>
+
+                        {/* รูปแบบการรับ */}
+                        <td className="px-3 py-3 whitespace-nowrap">
+                          {isSelf ? (
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-sm">
+                              <Building2 size={12} className="text-emerald-600" /> รับที่กองพัฒน์ฯ
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-blue-50 text-blue-700 border border-blue-200 shadow-sm">
+                              <Truck size={12} className="text-blue-600" /> ลงพื้นที่
+                            </span>
+                          )}
                         </td>
+
+                        <td className="px-3 py-3 text-xs whitespace-nowrap">
+                          {isSelf ? (
+                            <span className="text-emerald-800 font-medium">กองพัฒนานักศึกษา</span>
+                          ) : (
+                            <span className="text-gray-600">{r.district || '-'}</span>
+                          )}
+                        </td>
+
+                        <td className="px-3 py-3 whitespace-nowrap">
+                          {isSelf ? (
+                            <span className="flex items-center gap-1 text-xs font-medium text-emerald-700">
+                              <Footprints size={13} /> เดินมารับเอง
+                            </span>
+                          ) : (
+                            <span className={`flex items-center gap-1 text-xs font-medium ${access?.color ?? 'text-gray-500'}`}>
+                              <AccIcon size={13} /> {access?.label ?? r.access_condition}
+                            </span>
+                          )}
+                        </td>
+
                         <td className="px-3 py-3">
                           <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold whitespace-nowrap ${STATUS_CONFIG[r.status].color}`}>
                             <span className={`w-1.5 h-1.5 rounded-full ${STATUS_CONFIG[r.status].dot}`} />

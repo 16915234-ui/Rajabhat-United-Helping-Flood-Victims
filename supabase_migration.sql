@@ -20,11 +20,13 @@ CREATE TABLE IF NOT EXISTS public.relief_registrations (
   landmark          TEXT,
   google_maps_link  TEXT,
   access_condition  TEXT        NOT NULL CHECK (access_condition IN ('car', 'pickup', 'boat', 'walk')),
+  delivery_method   TEXT        DEFAULT 'delivery',
   status            TEXT        NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'in_progress', 'completed'))
 );
 
 -- For existing tables that already exist, run these:
 ALTER TABLE public.relief_registrations ADD COLUMN IF NOT EXISTS student_id TEXT;
+ALTER TABLE public.relief_registrations ADD COLUMN IF NOT EXISTS delivery_method TEXT DEFAULT 'delivery';
 ALTER TABLE public.relief_registrations DROP CONSTRAINT IF EXISTS relief_registrations_access_condition_check;
 ALTER TABLE public.relief_registrations ADD CONSTRAINT relief_registrations_access_condition_check CHECK (access_condition IN ('car', 'pickup', 'boat', 'walk'));
 

@@ -27,4 +27,11 @@ export type ReliefRegistration = {
   google_maps_link: string | null
   access_condition: string
   status: 'pending' | 'in_progress' | 'completed'
+  delivery_method?: 'delivery' | 'self_pickup' | string | null
+}
+
+export function isSelfPickup(r: { delivery_method?: string | null; address?: string | null; district?: string | null }): boolean {
+  return r.delivery_method === 'self_pickup' ||
+    (typeof r.address === 'string' && r.address.includes('กองพัฒนานักศึกษา')) ||
+    r.district === 'กองพัฒนานักศึกษา'
 }

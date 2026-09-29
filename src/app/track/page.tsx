@@ -26,6 +26,7 @@ import {
   PlusCircle,
   Calendar,
   Building,
+  Building2,
 } from 'lucide-react'
 
 const STATUS_STEPS = [
@@ -315,6 +316,26 @@ function TrackContent() {
 
             {/* Information Grid */}
             <div className="space-y-4 pt-2">
+              {/* Delivery Method Banner */}
+              {record.delivery_method === 'self_pickup' || (record.address && record.address.includes('กองพัฒนานักศึกษา')) || record.district === 'กองพัฒนานักศึกษา' ? (
+                <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-4 flex items-start gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-emerald-600 text-white flex items-center justify-center flex-shrink-0 shadow-sm">
+                    <Building2 size={20} />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2">
+                      <span className="px-2.5 py-0.5 bg-emerald-600 text-white text-xs font-bold rounded-md">
+                        รับสิ่งของเองที่กองพัฒนานักศึกษา
+                      </span>
+                      <span className="text-xs text-emerald-700 font-semibold">(ไม่ต้องลงพื้นที่)</span>
+                    </div>
+                    <p className="text-xs text-emerald-900 leading-relaxed font-medium mt-1">
+                      ท่านเลือกมารับสิ่งของด้วยตนเอง ณ กองพัฒนานักศึกษา อาคาร 1 ชั้น 1 มรภ.พระนครศรีอยุธยา (สายด่วน: 035-221-222)
+                    </p>
+                  </div>
+                </div>
+              ) : null}
+
               <h2 className="text-sm font-bold text-gray-700">ข้อมูลผู้ลงทะเบียน</h2>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-gray-50 rounded-2xl p-5 border border-gray-100">
@@ -365,30 +386,65 @@ function TrackContent() {
                   </p>
                 </div>
                 <div>
-                  <p className="text-xs text-gray-400 mb-0.5 flex items-center gap-1">
-                    <AccIcon size={13} className={accessConfig?.color} /> สภาพเส้นทาง
-                  </p>
-                  <p className={`font-semibold text-xs ${accessConfig?.color ?? 'text-gray-700'}`}>
-                    {accessConfig?.label ?? record.access_condition}
-                  </p>
+                  {record.delivery_method === 'self_pickup' || (record.address && record.address.includes('กองพัฒนานักศึกษา')) || record.district === 'กองพัฒนานักศึกษา' ? (
+                    <>
+                      <p className="text-xs text-gray-400 mb-0.5 flex items-center gap-1">
+                        <Building2 size={13} className="text-emerald-600" /> รูปแบบการรับ
+                      </p>
+                      <p className="font-semibold text-xs text-emerald-700">
+                        🏢 รับเองที่กองพัฒนานักศึกษา
+                      </p>
+                    </>
+                  ) : (
+                    <>
+                      <p className="text-xs text-gray-400 mb-0.5 flex items-center gap-1">
+                        <AccIcon size={13} className={accessConfig?.color} /> สภาพเส้นทาง
+                      </p>
+                      <p className={`font-semibold text-xs ${accessConfig?.color ?? 'text-gray-700'}`}>
+                        {accessConfig?.label ?? record.access_condition}
+                      </p>
+                    </>
+                  )}
                 </div>
               </div>
 
               {/* Address card */}
-              <div className="bg-blue-50/70 border border-blue-100 rounded-2xl p-5">
-                <p className="text-xs font-semibold text-blue-700 mb-1 flex items-center gap-1.5">
-                  <MapPin size={14} /> ที่อยู่สำหรับการเดินทางช่วยเหลือ
-                </p>
-                <p className="text-sm text-gray-800 leading-relaxed font-medium">{record.address}</p>
-                {record.landmark && (
-                  <p className="text-xs text-gray-600 mt-2 bg-white/70 p-2.5 rounded-xl border border-blue-100">
-                    <span className="font-semibold text-blue-800">จุดสังเกต:</span> {record.landmark}
+              {record.delivery_method === 'self_pickup' || (record.address && record.address.includes('กองพัฒนานักศึกษา')) || record.district === 'กองพัฒนานักศึกษา' ? (
+                <div className="bg-emerald-50/70 border border-emerald-200 rounded-2xl p-5">
+                  <p className="text-xs font-semibold text-emerald-800 mb-1 flex items-center gap-1.5">
+                    <Building2 size={14} className="text-emerald-600" /> สถานที่รับสิ่งของช่วยเหลือ
                   </p>
-                )}
-              </div>
+                  <p className="text-sm text-gray-900 leading-relaxed font-bold">
+                    กองพัฒนานักศึกษา มหาวิทยาลัยราชภัฏพระนครศรีอยุธยา (อาคาร 1 ชั้น 1)
+                  </p>
+                  <p className="text-xs text-gray-600 mt-1">
+                    เลขที่ 96 หมู่ 2 ถนนปรีดีพนมยงค์ ตำบลประตูชัย อำเภอพระนครศรีอยุธยา จังหวัดพระนครศรีอยุธยา 13000
+                  </p>
+                  <div className="mt-3 bg-white p-3 rounded-xl border border-emerald-100 flex items-center justify-between flex-wrap gap-2">
+                    <div className="flex items-center gap-2 text-xs text-gray-700">
+                      <Phone size={14} className="text-emerald-600" />
+                      <span>สายด่วนประสานงานกองพัฒนานักศึกษา:</span>
+                      <a href="tel:035221222" className="font-bold text-emerald-800 hover:underline">035-221-222</a>
+                    </div>
+                    <span className="text-xs text-gray-500">วันจันทร์ - ศุกร์ ในวันและเวลาทำการ</span>
+                  </div>
+                </div>
+              ) : (
+                <div className="bg-blue-50/70 border border-blue-100 rounded-2xl p-5">
+                  <p className="text-xs font-semibold text-blue-700 mb-1 flex items-center gap-1.5">
+                    <MapPin size={14} /> ที่อยู่สำหรับการเดินทางช่วยเหลือ
+                  </p>
+                  <p className="text-sm text-gray-800 leading-relaxed font-medium">{record.address}</p>
+                  {record.landmark && (
+                    <p className="text-xs text-gray-600 mt-2 bg-white/70 p-2.5 rounded-xl border border-blue-100">
+                      <span className="font-semibold text-blue-800">จุดสังเกต:</span> {record.landmark}
+                    </p>
+                  )}
+                </div>
+              )}
 
-              {/* House Photo Preview */}
-              {record.image_url && (
+              {/* House Photo Preview (Only for delivery to home) */}
+              {record.image_url && !(record.delivery_method === 'self_pickup' || (record.address && record.address.includes('กองพัฒนานักศึกษา')) || record.district === 'กองพัฒนานักศึกษา') && (
                 <div className="rounded-2xl overflow-hidden border border-gray-200">
                   <div className="bg-gray-100 px-4 py-2 text-xs font-semibold text-gray-600 flex items-center gap-1.5">
                     <Waves size={13} /> รูปถ่ายสภาพบ้านและน้ำท่วม

@@ -43,6 +43,7 @@ type FormData = {
   line_id: string
   faculty: string
   major: string
+  delivery_method: 'delivery' | 'self_pickup' // ประสงค์ให้ลงพื้นที่ หรือ รับเองที่กองพัฒนานักศึกษา
   house_no: string      // บ้านเลขที่ / หมู่
   sub_district: string  // ตำบล / แขวง
   district: string      // อำเภอ / เขต
@@ -184,6 +185,7 @@ export default function RegisterPage() {
     line_id: '',
     faculty: '',
     major: '',
+    delivery_method: 'delivery',
     house_no: '',
     sub_district: '',
     district: '',
@@ -252,41 +254,75 @@ export default function RegisterPage() {
   const prevStep = () => setStep((s) => Math.max(s - 1, 1))
 
   const handleSubmit = async () => {
-    if (!validateStep(3)) return
-    setSubmitting(true); setSubmitError(null)
+    const isSelf = formData.delivery_method === 'self_pickup'
+    if (isSelf) {
+      if (!validateStep(1)) return
+    } else {
+      if (!validateStep(3)) return
+    }
+    setSubmitting(true)
+    setSubmitError(null)
     try {
-      if (!imageFile) throw new Error('กรุณาอัปโหลดรูปถ่ายสภาพบ้าน')
-      const ext = imageFile.name.split('.').pop()
-      const fileName = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`
-      const { error: uploadError } = await supabase.storage.from('flood-photos').upload(fileName, imageFile, { cacheControl: '3600', upsert: false })
-      if (uploadError) throw new Error(`อัปโหลดรูปภาพล้มเหลว: ${uploadError.message}`)
-      const { data: urlData } = supabase.storage.from('flood-photos').getPublicUrl(fileName)
-      const googleMapsLink = location ? `https://www.google.com/maps?q=${location.lat},${location.lng}` : null
+      let imageUrl = 'https://images.unsplash.com/photo-1541829070764-84a7d30dd3f3?auto=format&fit=crop&w=800&q=80'
+      let fullAddress = 'รับสิ่งของด้วยตนเอง ณ กองพัฒนานักศึกษา อาคาร 1 มรภ.พระนครศรีอยุธยา'
+      let districtVal: string | null = 'กองพัฒนานักศึกษา'
+      let landmarkVal: string | null = 'กองพัฒนานักศึกษา อาคาร 1 มรภ.พระนครศรีอยุธยา'
+      let googleMapsLink: string | null = 'https://www.google.com/maps?q=14.3533,100.5658'
+      let accessCond = 'walk'
 
-      const fullAddress = `บ้านเลขที่/หมู่ ${formData.house_no.trim()} ต.${formData.sub_district.trim()} อ.${formData.district.trim()} จ.${formData.province.trim()}`
+      if (!isSelf) {
+        if (!imageFile) throw new Error('กรุณาอัปโหลดรูปถ่ายสภาพบ้าน')
+        const ext = imageFile.name.split('.').pop()
+        const fileName = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`
+        const { error: uploadError } = await supabase.storage.from('flood-photos').upload(fileName, imageFile, { cacheControl: '3600', upsert: false })
+        if (uploadError) throw new Error(`อัปโหลดรูปภาพล้มเหลว: ${uploadError.message}`)
+        const { data: urlData } = supabase.storage.from('flood-photos').getPublicUrl(fileName)
+        imageUrl = urlData.publicUrl
+        googleMapsLink = location ? `https://www.google.com/maps?q=${location.lat},${location.lng}` : null
+        fullAddress = `บ้านเลขที่/หมู่ ${formData.house_no.trim()} ต.${formData.sub_district.trim()} อ.${formData.district.trim()} จ.${formData.province.trim()}`
+        districtVal = formData.district.trim() || null
+        landmarkVal = formData.landmark.trim() || null
+        accessCond = formData.access_condition
+      }
 
-      const { data, error: insertError } = await supabase
+      const insertPayload: Record<string, any> = {
+        full_name: formData.full_name.trim(),
+        student_id: formData.student_id.trim() || null,
+        user_type: 'student',
+        faculty: formData.faculty,
+        major: formData.major,
+        phone: formData.phone.trim(),
+        line_id: formData.line_id.trim() || null,
+        address: fullAddress,
+        district: districtVal,
+        image_url: imageUrl,
+        landmark: landmarkVal,
+        google_maps_link: googleMapsLink,
+        access_condition: accessCond,
+        delivery_method: formData.delivery_method,
+        status: 'pending',
+      }
+
+      let { data, error: insertError } = await supabase
         .from('relief_registrations')
-        .insert({
-          full_name: formData.full_name.trim(),
-          student_id: formData.student_id.trim() || null,
-          user_type: 'student',
-          faculty: formData.faculty,
-          major: formData.major,
-          phone: formData.phone.trim(),
-          line_id: formData.line_id.trim() || null,
-          address: fullAddress,
-          district: formData.district.trim() || null,
-          image_url: urlData.publicUrl,
-          landmark: formData.landmark.trim() || null,
-          google_maps_link: googleMapsLink,
-          access_condition: formData.access_condition,
-          status: 'pending',
-        })
+        .insert(insertPayload)
         .select('id')
         .single()
 
+      // Graceful fallback if database column 'delivery_method' doesn't exist yet
+      if (insertError && (insertError.code === 'PGRST204' || insertError.message?.includes('delivery_method'))) {
+        delete insertPayload.delivery_method
+        const retryResult = await supabase
+          .from('relief_registrations')
+          .insert(insertPayload)
+          .select('id')
+          .single()
+        data = retryResult.data
+        insertError = retryResult.error
+      }
+
       if (insertError) throw new Error(`บันทึกข้อมูลล้มเหลว: ${insertError.message}`)
+      if (!data) throw new Error('ไม่พบข้อมูลผลลัพธ์การลงทะเบียน')
 
       // Redirect directly to tracking page
       router.push(`/track?id=${data.id}`)
@@ -305,6 +341,7 @@ export default function RegisterPage() {
       line_id: '',
       faculty: '',
       major: '',
+      delivery_method: 'delivery',
       house_no: '',
       sub_district: '',
       district: '',
@@ -335,19 +372,53 @@ export default function RegisterPage() {
         {/* Step Indicator */}
         <div className="mb-8">
           <div className="h-1.5 bg-gray-200 rounded-full mb-6">
-            <div className="h-1.5 bg-gradient-to-r from-maroon-700 to-gold-500 rounded-full transition-all duration-500" style={{ width: `${progress}%` }} />
+            <div
+              className="h-1.5 bg-gradient-to-r from-maroon-700 to-gold-500 rounded-full transition-all duration-500"
+              style={{ width: `${formData.delivery_method === 'self_pickup' ? 100 : progress}%` }}
+            />
           </div>
           <div className="flex justify-between">
             {STEPS.map((s) => {
               const Icon = s.icon
-              const isActive = step === s.id
-              const isDone = step > s.id
+              const isSelf = formData.delivery_method === 'self_pickup'
+              const isSkipped = isSelf && s.id > 1
+              const isActive = step === s.id && !isSkipped
+              const isDone = isSelf ? (s.id === 1) : (step > s.id)
+
               return (
                 <div key={s.id} className="flex flex-col items-center gap-2">
-                  <div className={`w-10 h-10 rounded-full flex items-center justify-center transition-all duration-300 ${isDone ? 'bg-green-500 text-white shadow-md' : isActive ? 'bg-maroon-700 text-white shadow-lg scale-110' : 'bg-white text-gray-400 border-2 border-gray-200'}`}>
-                    {isDone ? <CheckCircle size={18} /> : <Icon size={16} />}
+                  <div
+                    className={`w-10 h-10 rounded-full flex items-center justify-center transition-all duration-300 ${
+                      isSkipped
+                        ? 'bg-gray-100 text-gray-300 border-2 border-dashed border-gray-200'
+                        : isDone
+                        ? 'bg-green-500 text-white shadow-md'
+                        : isActive
+                        ? 'bg-maroon-700 text-white shadow-lg scale-110'
+                        : 'bg-white text-gray-400 border-2 border-gray-200'
+                    }`}
+                  >
+                    {isSkipped ? (
+                      <span className="text-xs font-semibold text-gray-300">-</span>
+                    ) : isDone ? (
+                      <CheckCircle size={18} />
+                    ) : (
+                      <Icon size={16} />
+                    )}
                   </div>
-                  <span className={`text-xs font-medium hidden sm:block ${isActive ? 'text-maroon-700' : isDone ? 'text-green-600' : 'text-gray-400'}`}>{s.title}</span>
+                  <span
+                    className={`text-xs font-medium hidden sm:block ${
+                      isSkipped
+                        ? 'text-gray-300 line-through'
+                        : isActive
+                        ? 'text-maroon-700 font-bold'
+                        : isDone
+                        ? 'text-green-600'
+                        : 'text-gray-400'
+                    }`}
+                  >
+                    {s.title} {isSkipped && '(ข้าม)'}
+                  </span>
                 </div>
               )
             })}
@@ -356,8 +427,17 @@ export default function RegisterPage() {
 
         {/* Form Card */}
         <div className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
-          <div className="bg-maroon-50 border-b border-maroon-100 px-6 py-4">
-            <h2 className="font-bold text-maroon-800 text-lg">ขั้นตอนที่ {step}: {STEPS[step - 1].title}</h2>
+          <div className="bg-maroon-50 border-b border-maroon-100 px-6 py-4 flex items-center justify-between">
+            <h2 className="font-bold text-maroon-800 text-lg">
+              {formData.delivery_method === 'self_pickup' && step === 1
+                ? 'ข้อมูลนักศึกษา & รับสิ่งของที่กองพัฒนานักศึกษา'
+                : `ขั้นตอนที่ ${step}: ${STEPS[step - 1].title}`}
+            </h2>
+            {formData.delivery_method === 'self_pickup' && (
+              <span className="text-xs font-semibold bg-emerald-100 text-emerald-800 px-3 py-1 rounded-full border border-emerald-200 flex items-center gap-1">
+                <Building2 size={13} /> รับเองที่กองพัฒน์ฯ
+              </span>
+            )}
           </div>
 
           <div className="p-6 sm:p-8">
@@ -458,6 +538,107 @@ export default function RegisterPage() {
                     <input id="line_id" type="text" value={formData.line_id} onChange={(e) => update('line_id', e.target.value)} placeholder="เช่น somchai_123" className={inputCls} />
                   </IconInput>
                 </div>
+
+                {/* ── Delivery Method Choice ── */}
+                <div className="pt-2">
+                  <label className="block text-sm font-semibold text-gray-800 mb-2">
+                    ความประสงค์ในการรับมอบสิ่งของช่วยเหลือ <span className="text-red-500">*</span>
+                  </label>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {/* Option 1: Delivery */}
+                    <div
+                      id="choice-delivery"
+                      onClick={() => update('delivery_method', 'delivery')}
+                      className={`p-4 rounded-2xl border-2 cursor-pointer transition-all ${
+                        formData.delivery_method === 'delivery'
+                          ? 'border-maroon-600 bg-maroon-50/70 shadow-sm ring-1 ring-maroon-500'
+                          : 'border-gray-200 bg-white hover:border-gray-300'
+                      }`}
+                    >
+                      <div className="flex items-start gap-3">
+                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 transition-colors ${
+                          formData.delivery_method === 'delivery' ? 'bg-maroon-700 text-white' : 'bg-gray-100 text-gray-500'
+                        }`}>
+                          <Truck size={20} />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between">
+                            <p className="font-bold text-gray-900 text-sm">ประสงค์ให้ลงพื้นที่</p>
+                            {formData.delivery_method === 'delivery' && (
+                              <CheckCircle size={16} className="text-maroon-600 flex-shrink-0" />
+                            )}
+                          </div>
+                          <p className="text-xs text-gray-500 mt-1 leading-relaxed">
+                            ทีมงานลงพื้นที่นำของไปส่งให้ถึงที่พัก (ต้องระบุที่อยู่และรูปถ่าย)
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Option 2: Self Pickup */}
+                    <div
+                      id="choice-self-pickup"
+                      onClick={() => update('delivery_method', 'self_pickup')}
+                      className={`p-4 rounded-2xl border-2 cursor-pointer transition-all ${
+                        formData.delivery_method === 'self_pickup'
+                          ? 'border-emerald-600 bg-emerald-50/70 shadow-sm ring-1 ring-emerald-500'
+                          : 'border-gray-200 bg-white hover:border-gray-300'
+                      }`}
+                    >
+                      <div className="flex items-start gap-3">
+                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 transition-colors ${
+                          formData.delivery_method === 'self_pickup' ? 'bg-emerald-600 text-white' : 'bg-gray-100 text-gray-500'
+                        }`}>
+                          <Building2 size={20} />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between">
+                            <p className="font-bold text-gray-900 text-sm">ไม่ประสงค์ให้ลงพื้นที่</p>
+                            {formData.delivery_method === 'self_pickup' && (
+                              <CheckCircle size={16} className="text-emerald-600 flex-shrink-0" />
+                            )}
+                          </div>
+                          <span className="inline-block mt-0.5 px-2 py-0.5 bg-emerald-100 text-emerald-800 text-[11px] font-bold rounded-md">
+                            มารับของที่กองพัฒนานักศึกษา
+                          </span>
+                          <p className="text-xs text-gray-500 mt-1 leading-relaxed">
+                            สะดวก รวดเร็ว ไม่ต้องกรอกที่อยู่ ไม่ต้องถ่ายรูปบ้าน
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Helpful banner when self_pickup is chosen */}
+                  {formData.delivery_method === 'self_pickup' && (
+                    <div className="mt-4 p-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-900 animate-in fade-in duration-300">
+                      <div className="flex items-start gap-3">
+                        <div className="w-9 h-9 rounded-xl bg-emerald-600 text-white flex items-center justify-center flex-shrink-0 mt-0.5 shadow-sm">
+                          <Building2 size={18} />
+                        </div>
+                        <div className="text-xs space-y-1 flex-1">
+                          <p className="font-bold text-sm text-emerald-950">
+                            📍 จุดรับสิ่งของช่วยเหลือ: กองพัฒนานักศึกษา มรภ.พระนครศรีอยุธยา (อาคาร 1)
+                          </p>
+                          <p className="text-emerald-800 leading-relaxed">
+                            ท่านสามารถเดินทางมารับสิ่งของช่วยเหลือด้วยตนเองได้ในวันและเวลาทำการ หรือโทรประสานงานล่วงหน้าที่{' '}
+                            <strong className="font-bold text-emerald-950 underline underline-offset-2">035-221-222</strong>
+                          </p>
+                          <p className="text-emerald-900 font-semibold pt-1">
+                            ✨ ท่านไม่จำเป็นต้องกรอกข้อมูลที่อยู่ รูปถ่ายสภาพบ้าน หรือปักหมุดแผนที่ สามารถกดยืนยันลงทะเบียนด้านล่างได้ทันที
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {submitError && (
+                  <div className="p-4 bg-red-50 border border-red-200 rounded-xl flex items-start gap-3">
+                    <AlertCircle size={18} className="text-red-500 flex-shrink-0 mt-0.5" />
+                    <p className="text-red-700 text-sm">{submitError}</p>
+                  </div>
+                )}
               </div>
             )}
 
@@ -676,18 +857,60 @@ export default function RegisterPage() {
 
           {/* Navigation Buttons */}
           <div className="border-t border-gray-100 px-6 sm:px-8 py-5 flex justify-between gap-4 bg-gray-50/50">
-            <button type="button" onClick={prevStep} disabled={step === 1}
-              className={`flex items-center gap-2 px-5 py-3 rounded-xl font-semibold text-sm transition-all ${step === 1 ? 'text-gray-300 cursor-not-allowed' : 'text-gray-600 hover:bg-gray-200 active:scale-95'}`}>
+            <button
+              type="button"
+              onClick={prevStep}
+              disabled={step === 1}
+              className={`flex items-center gap-2 px-5 py-3 rounded-xl font-semibold text-sm transition-all ${
+                step === 1 ? 'text-gray-300 cursor-not-allowed' : 'text-gray-600 hover:bg-gray-200 active:scale-95'
+              }`}
+            >
               <ChevronLeft size={18} /> ก่อนหน้า
             </button>
-            {step < 3 ? (
-              <button type="button" onClick={nextStep} className="flex items-center gap-2 px-6 py-3 bg-maroon-700 hover:bg-maroon-600 text-white font-semibold text-sm rounded-xl transition-all active:scale-95 shadow-sm">
+
+            {formData.delivery_method === 'self_pickup' && step === 1 ? (
+              <button
+                type="button"
+                id="submit-register"
+                onClick={handleSubmit}
+                disabled={submitting}
+                className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-500 hover:to-emerald-600 text-white font-bold text-sm rounded-xl transition-all active:scale-95 shadow-md disabled:opacity-70 disabled:cursor-not-allowed"
+              >
+                {submitting ? (
+                  <>
+                    <Loader2 size={18} className="animate-spin" /> กำลังส่งข้อมูล...
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle size={18} /> ยืนยันการลงทะเบียน (รับของที่กองพัฒน์ฯ)
+                  </>
+                )}
+              </button>
+            ) : step < 3 ? (
+              <button
+                type="button"
+                onClick={nextStep}
+                className="flex items-center gap-2 px-6 py-3 bg-maroon-700 hover:bg-maroon-600 text-white font-semibold text-sm rounded-xl transition-all active:scale-95 shadow-sm"
+              >
                 ถัดไป <ChevronRight size={18} />
               </button>
             ) : (
-              <button type="button" onClick={handleSubmit} disabled={submitting} id="submit-register"
-                className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-maroon-700 to-maroon-800 hover:from-maroon-600 hover:to-maroon-700 text-white font-bold text-sm rounded-xl transition-all active:scale-95 shadow-md disabled:opacity-70 disabled:cursor-not-allowed">
-                {submitting ? <><Loader2 size={18} className="animate-spin" /> กำลังส่ง...</> : <><CheckCircle size={18} /> ยืนยันการลงทะเบียน</>}
+              <button
+                type="button"
+                onClick={handleSubmit}
+                disabled={submitting}
+                id="submit-register"
+                className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-maroon-700 to-maroon-800 hover:from-maroon-600 hover:to-maroon-700 text-white font-bold text-sm rounded-xl transition-all active:scale-95 shadow-md disabled:opacity-70 disabled:cursor-not-allowed"
+              >
+                {submitting ? (
+                  <>
+                    <Loader2 size={18} className="animate-spin" /> กำลังส่ง...
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle size={18} /> ยืนยันการลงทะเบียน (ส่งของถึงที่พัก)
+                  </>
+                )}
               </button>
             )}
           </div>
