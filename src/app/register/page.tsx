@@ -137,10 +137,10 @@ const STEPS = [
 ]
 
 const ACCESS_CONDITIONS = [
-  { value: 'car',    label: 'รถยนต์ธรรมดา', desc: 'สามารถเข้าถึงได้ด้วยรถยนต์ทั่วไป',          Icon: Car,        color: 'text-slate-600' },
-  { value: 'pickup', label: 'รถกระบะยกสูง', desc: 'ต้องใช้รถกระบะยกสูงหรือรถ 4WD',             Icon: Truck,      color: 'text-orange-600' },
-  { value: 'boat',   label: 'เรือเท่านั้น',   desc: 'น้ำท่วมสูง เข้าถึงได้ทางเรือเท่านั้น',     Icon: Ship,       color: 'text-blue-600' },
-  { value: 'walk',   label: 'เดินเท้าเท่านั้น', desc: 'ยานพาหนะเข้าไม่ถึง ต้องเดินลุยน้ำ/เดินเท้าเข้าไป', Icon: Footprints, color: 'text-emerald-600' },
+  { value: 'car', label: 'รถยนต์ธรรมดา', desc: 'สามารถเข้าถึงได้ด้วยรถยนต์ทั่วไป', Icon: Car, color: 'text-slate-600' },
+  { value: 'pickup', label: 'รถกระบะยกสูง', desc: 'ต้องใช้รถกระบะยกสูงหรือรถ 4WD', Icon: Truck, color: 'text-orange-600' },
+  { value: 'boat', label: 'เรือเท่านั้น', desc: 'น้ำท่วมสูง เข้าถึงได้ทางเรือเท่านั้น', Icon: Ship, color: 'text-blue-600' },
+  { value: 'walk', label: 'เดินเท้าเท่านั้น', desc: 'ยานพาหนะเข้าไม่ถึง ต้องเดินลุยน้ำ/เดินเท้าเข้าไป', Icon: Footprints, color: 'text-emerald-600' },
 ]
 
 // ── Reusable icon-input wrapper ────────────────────────────────────────
@@ -264,9 +264,9 @@ export default function RegisterPage() {
     setSubmitError(null)
     try {
       let imageUrl = 'https://images.unsplash.com/photo-1541829070764-84a7d30dd3f3?auto=format&fit=crop&w=800&q=80'
-      let fullAddress = 'รับสิ่งของด้วยตนเอง ณ กองพัฒนานักศึกษา อาคาร 1 มรภ.พระนครศรีอยุธยา'
+      let fullAddress = 'รับสิ่งของด้วยตนเอง ณ กองพัฒนานักศึกษา  มรภ.พระนครศรีอยุธยา'
       let districtVal: string | null = 'กองพัฒนานักศึกษา'
-      let landmarkVal: string | null = 'กองพัฒนานักศึกษา อาคาร 1 มรภ.พระนครศรีอยุธยา'
+      let landmarkVal: string | null = 'กองพัฒนานักศึกษา มรภ.พระนครศรีอยุธยา'
       let googleMapsLink: string | null = 'https://www.google.com/maps?q=14.3533,100.5658'
       let accessCond = 'walk'
 
@@ -388,15 +388,14 @@ export default function RegisterPage() {
               return (
                 <div key={s.id} className="flex flex-col items-center gap-2">
                   <div
-                    className={`w-10 h-10 rounded-full flex items-center justify-center transition-all duration-300 ${
-                      isSkipped
+                    className={`w-10 h-10 rounded-full flex items-center justify-center transition-all duration-300 ${isSkipped
                         ? 'bg-gray-100 text-gray-300 border-2 border-dashed border-gray-200'
                         : isDone
-                        ? 'bg-green-500 text-white shadow-md'
-                        : isActive
-                        ? 'bg-maroon-700 text-white shadow-lg scale-110'
-                        : 'bg-white text-gray-400 border-2 border-gray-200'
-                    }`}
+                          ? 'bg-green-500 text-white shadow-md'
+                          : isActive
+                            ? 'bg-maroon-700 text-white shadow-lg scale-110'
+                            : 'bg-white text-gray-400 border-2 border-gray-200'
+                      }`}
                   >
                     {isSkipped ? (
                       <span className="text-xs font-semibold text-gray-300">-</span>
@@ -407,15 +406,14 @@ export default function RegisterPage() {
                     )}
                   </div>
                   <span
-                    className={`text-xs font-medium hidden sm:block ${
-                      isSkipped
+                    className={`text-xs font-medium hidden sm:block ${isSkipped
                         ? 'text-gray-300 line-through'
                         : isActive
-                        ? 'text-maroon-700 font-bold'
-                        : isDone
-                        ? 'text-green-600'
-                        : 'text-gray-400'
-                    }`}
+                          ? 'text-maroon-700 font-bold'
+                          : isDone
+                            ? 'text-green-600'
+                            : 'text-gray-400'
+                      }`}
                   >
                     {s.title} {isSkipped && '(ข้าม)'}
                   </span>
@@ -549,16 +547,14 @@ export default function RegisterPage() {
                     <div
                       id="choice-delivery"
                       onClick={() => update('delivery_method', 'delivery')}
-                      className={`p-4 rounded-2xl border-2 cursor-pointer transition-all ${
-                        formData.delivery_method === 'delivery'
+                      className={`p-4 rounded-2xl border-2 cursor-pointer transition-all ${formData.delivery_method === 'delivery'
                           ? 'border-maroon-600 bg-maroon-50/70 shadow-sm ring-1 ring-maroon-500'
                           : 'border-gray-200 bg-white hover:border-gray-300'
-                      }`}
+                        }`}
                     >
                       <div className="flex items-start gap-3">
-                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 transition-colors ${
-                          formData.delivery_method === 'delivery' ? 'bg-maroon-700 text-white' : 'bg-gray-100 text-gray-500'
-                        }`}>
+                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 transition-colors ${formData.delivery_method === 'delivery' ? 'bg-maroon-700 text-white' : 'bg-gray-100 text-gray-500'
+                          }`}>
                           <Truck size={20} />
                         </div>
                         <div className="flex-1 min-w-0">
@@ -579,16 +575,14 @@ export default function RegisterPage() {
                     <div
                       id="choice-self-pickup"
                       onClick={() => update('delivery_method', 'self_pickup')}
-                      className={`p-4 rounded-2xl border-2 cursor-pointer transition-all ${
-                        formData.delivery_method === 'self_pickup'
+                      className={`p-4 rounded-2xl border-2 cursor-pointer transition-all ${formData.delivery_method === 'self_pickup'
                           ? 'border-emerald-600 bg-emerald-50/70 shadow-sm ring-1 ring-emerald-500'
                           : 'border-gray-200 bg-white hover:border-gray-300'
-                      }`}
+                        }`}
                     >
                       <div className="flex items-start gap-3">
-                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 transition-colors ${
-                          formData.delivery_method === 'self_pickup' ? 'bg-emerald-600 text-white' : 'bg-gray-100 text-gray-500'
-                        }`}>
+                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 transition-colors ${formData.delivery_method === 'self_pickup' ? 'bg-emerald-600 text-white' : 'bg-gray-100 text-gray-500'
+                          }`}>
                           <Building2 size={20} />
                         </div>
                         <div className="flex-1 min-w-0">
@@ -618,11 +612,10 @@ export default function RegisterPage() {
                         </div>
                         <div className="text-xs space-y-1 flex-1">
                           <p className="font-bold text-sm text-emerald-950">
-                            📍 จุดรับสิ่งของช่วยเหลือ: กองพัฒนานักศึกษา มรภ.พระนครศรีอยุธยา (อาคาร 1)
+                            📍 จุดรับสิ่งของช่วยเหลือ: กองพัฒนานักศึกษา มรภ.พระนครศรีอยุธยา
                           </p>
                           <p className="text-emerald-800 leading-relaxed">
-                            ท่านสามารถเดินทางมารับสิ่งของช่วยเหลือด้วยตนเองได้ในวันและเวลาทำการ หรือโทรประสานงานล่วงหน้าที่{' '}
-                            <strong className="font-bold text-emerald-950 underline underline-offset-2">035-221-222</strong>
+                            ท่านสามารถเดินทางมารับสิ่งของช่วยเหลือด้วยตนเองได้ในวันและเวลาทำการ{' '}
                           </p>
                           <p className="text-emerald-900 font-semibold pt-1">
                             ✨ ท่านไม่จำเป็นต้องกรอกข้อมูลที่อยู่ รูปถ่ายสภาพบ้าน หรือปักหมุดแผนที่ สามารถกดยืนยันลงทะเบียนด้านล่างได้ทันที
@@ -820,13 +813,11 @@ export default function RegisterPage() {
                           type="button"
                           id={`access_${opt.value}`}
                           onClick={() => update('access_condition', opt.value)}
-                          className={`w-full p-4 rounded-xl border-2 flex items-center gap-4 text-left transition-all duration-200 ${
-                            isSelected ? 'border-maroon-600 bg-maroon-50 shadow-sm' : 'border-gray-200 hover:border-gray-300 bg-gray-50'
-                          }`}
+                          className={`w-full p-4 rounded-xl border-2 flex items-center gap-4 text-left transition-all duration-200 ${isSelected ? 'border-maroon-600 bg-maroon-50 shadow-sm' : 'border-gray-200 hover:border-gray-300 bg-gray-50'
+                            }`}
                         >
-                          <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 transition-colors ${
-                            isSelected ? 'bg-maroon-700 text-white' : `bg-white border border-gray-200 ${opt.color}`
-                          }`}>
+                          <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 transition-colors ${isSelected ? 'bg-maroon-700 text-white' : `bg-white border border-gray-200 ${opt.color}`
+                            }`}>
                             <AccIcon size={20} />
                           </div>
                           <div className="flex-1 min-w-0">
@@ -861,9 +852,8 @@ export default function RegisterPage() {
               type="button"
               onClick={prevStep}
               disabled={step === 1}
-              className={`flex items-center gap-2 px-5 py-3 rounded-xl font-semibold text-sm transition-all ${
-                step === 1 ? 'text-gray-300 cursor-not-allowed' : 'text-gray-600 hover:bg-gray-200 active:scale-95'
-              }`}
+              className={`flex items-center gap-2 px-5 py-3 rounded-xl font-semibold text-sm transition-all ${step === 1 ? 'text-gray-300 cursor-not-allowed' : 'text-gray-600 hover:bg-gray-200 active:scale-95'
+                }`}
             >
               <ChevronLeft size={18} /> ก่อนหน้า
             </button>

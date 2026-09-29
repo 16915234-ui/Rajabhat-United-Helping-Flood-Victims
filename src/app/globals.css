@@ -2,25 +2,25 @@
 @import "leaflet/dist/leaflet.css";
 
 @theme {
-  --color-maroon-50: #fdf2f4;
-  --color-maroon-100: #fbe8ec;
-  --color-maroon-200: #f5c9d4;
-  --color-maroon-300: #ed9aaf;
-  --color-maroon-400: #e16284;
-  --color-maroon-500: #cf3660;
-  --color-maroon-600: #b01c48;
-  --color-maroon-700: #900020;
-  --color-maroon-800: #780029;
-  --color-maroon-900: #660026;
-  --color-maroon-950: #3b0013;
+  --color-maroon-50: #fff5f2;
+  --color-maroon-100: #fce7e0;
+  --color-maroon-200: #f4c9bc;
+  --color-maroon-300: #e7a08b;
+  --color-maroon-400: #d57059;
+  --color-maroon-500: #bd4936;
+  --color-maroon-600: #9e2a20;
+  --color-maroon-700: #800b08;
+  --color-maroon-800: #690c0a;
+  --color-maroon-900: #560f0c;
+  --color-maroon-950: #330a08;
 
   --color-gold-50: #fffbeb;
   --color-gold-100: #fef3c7;
   --color-gold-200: #fde68a;
-  --color-gold-300: #fcd34d;
-  --color-gold-400: #fbbf24;
-  --color-gold-500: #f59e0b;
-  --color-gold-600: #d97706;
+  --color-gold-300: #e8cb80;
+  --color-gold-400: #d8b35b;
+  --color-gold-500: #c69a40;
+  --color-gold-600: #a7792b;
   --color-gold-700: #b45309;
   --color-gold-800: #92400e;
   --color-gold-900: #78350f;
@@ -40,7 +40,7 @@ body {
   background: #f1f5f9;
 }
 ::-webkit-scrollbar-thumb {
-  background: #900020;
+  background: #800b08;
   border-radius: 3px;
 }
 
@@ -57,7 +57,7 @@ body {
 }
 
 .hero-gradient {
-  background: linear-gradient(135deg, #3b0013 0%, #900020 35%, #b01c48 60%, #d97706 100%);
+  background: linear-gradient(135deg, #330a08 0%, #800b08 35%, #9e2a20 60%, #a7792b 100%);
   background-size: 300% 300%;
   animation: gradientShift 8s ease infinite;
 }
@@ -133,4 +133,29 @@ body {
 
 .input-field:focus {
   box-shadow: 0 0 0 3px rgba(144, 0, 32, 0.12);
+}
+
+/* Original brand assets are preserved; presentation is handled in CSS. */
+.brand-crest {
+  clip-path: polygon(50% 3.5%, 90% 26.5%, 90% 73.5%, 50% 96.5%, 10% 73.5%, 10% 26.5%);
+}
+
+.brand-hero {
+  background: radial-gradient(ellipse at 12% 20%, #a32e20 0%, transparent 55%), linear-gradient(115deg, #800b08, #480c0a);
+  border-top: 3px solid var(--color-gold-400);
+}
+
+.brand-wordmark {
+  filter: invert(1);
+  mix-blend-mode: screen;
+}
+
+:where(a, button):focus-visible {
+  outline: 3px solid var(--color-gold-500);
+  outline-offset: 4px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-gradient, .float-anim, .wave-anim, .pulse-ring::before { animation: none; }
+  .card-hover { transition: none; }
 }

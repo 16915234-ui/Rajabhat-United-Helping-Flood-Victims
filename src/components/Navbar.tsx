@@ -4,7 +4,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { usePathname } from 'next/navigation'
 import { useState } from 'react'
-import { Menu, X, Phone } from 'lucide-react'
+import { Menu, X } from 'lucide-react'
 
 export default function Navbar() {
   const pathname = usePathname()
@@ -19,13 +19,16 @@ export default function Navbar() {
   return (
     <header className="sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b border-maroon-100 shadow-sm">
       <nav className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16">
+        <div className="flex items-center justify-between h-20">
           {/* Minimal Luxurious Banner Link */}
           <Link href="/register" className="flex items-center gap-3 sm:gap-4 group py-1">
-            <img
-              src="/aru-banner-transparent.png"
-              alt="Phranakhon Si Ayutthaya Rajabhat University"
-              className="h-8 sm:h-9 md:h-10 w-auto object-contain transition-transform duration-300 group-hover:scale-[1.02]"
+            <Image
+              src="/brand/aru-student-logo.webp"
+              width={480}
+              height={480}
+              priority
+              alt="องค์การนักศึกษา มหาวิทยาลัยราชภัฏพระนครศรีอยุธยา"
+              className="brand-crest h-14 w-14 shrink-0 object-contain sm:h-16 sm:w-16"
             />
             <span className="h-6 w-px bg-gradient-to-b from-gray-200 via-gray-300 to-gray-200 hidden sm:block" />
             <div className="flex flex-col">
@@ -33,13 +36,13 @@ export default function Navbar() {
                 ราชภัฏร่วมใจ ช่วยภัยน้ำท่วม
               </span>
               <span className="text-[10px] text-gray-400 font-medium tracking-wider hidden sm:block">
-                ระบบลงทะเบียนขอรับความช่วยเหลือ
+                องค์การนักศึกษา มรภ.พระนครศรีอยุธยา
               </span>
             </div>
           </Link>
 
           {/* Desktop Nav */}
-          <div className="hidden md:flex items-center gap-2">
+          <div className="hidden lg:flex items-center gap-2">
             {links.map((link) => (
               <Link
                 key={link.href}
@@ -57,9 +60,11 @@ export default function Navbar() {
 
           {/* Mobile burger */}
           <button
-            className="md:hidden p-2 rounded-lg text-maroon-700 hover:bg-maroon-50 transition-colors"
+            className="lg:hidden p-2 rounded-lg text-maroon-700 hover:bg-maroon-50 transition-colors"
             onClick={() => setMobileOpen(!mobileOpen)}
-            aria-label="Toggle menu"
+            aria-label={mobileOpen ? 'ปิดเมนู' : 'เปิดเมนู'}
+            aria-expanded={mobileOpen}
+            aria-controls="mobile-navigation"
           >
             {mobileOpen ? <X size={22} /> : <Menu size={22} />}
           </button>
@@ -67,7 +72,7 @@ export default function Navbar() {
 
         {/* Mobile Menu */}
         {mobileOpen && (
-          <div className="md:hidden pb-4 pt-2 flex flex-col gap-1 border-t border-gray-100 mt-1">
+          <div id="mobile-navigation" className="lg:hidden pb-4 pt-2 flex flex-col gap-1 border-t border-gray-100 mt-1">
             {links.map((link) => (
               <Link
                 key={link.href}
