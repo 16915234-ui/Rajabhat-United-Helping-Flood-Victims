@@ -27,6 +27,7 @@ import {
   Car,
   Truck,
   Ship,
+  Footprints,
   Building2,
   Flag,
 } from 'lucide-react'
@@ -135,9 +136,10 @@ const STEPS = [
 ]
 
 const ACCESS_CONDITIONS = [
-  { value: 'car',    label: 'รถยนต์ธรรมดา', desc: 'สามารถเข้าถึงได้ด้วยรถยนต์ทั่วไป',       Icon: Car,   color: 'text-slate-600' },
-  { value: 'pickup', label: 'รถกระบะยกสูง', desc: 'ต้องใช้รถกระบะยกสูงหรือรถ 4WD',          Icon: Truck,  color: 'text-orange-600' },
-  { value: 'boat',   label: 'เรือเท่านั้น', desc: 'น้ำท่วมสูง เข้าถึงได้ทางเรือเท่านั้น',  Icon: Ship,   color: 'text-blue-600' },
+  { value: 'car',    label: 'รถยนต์ธรรมดา', desc: 'สามารถเข้าถึงได้ด้วยรถยนต์ทั่วไป',          Icon: Car,        color: 'text-slate-600' },
+  { value: 'pickup', label: 'รถกระบะยกสูง', desc: 'ต้องใช้รถกระบะยกสูงหรือรถ 4WD',             Icon: Truck,      color: 'text-orange-600' },
+  { value: 'boat',   label: 'เรือเท่านั้น',   desc: 'น้ำท่วมสูง เข้าถึงได้ทางเรือเท่านั้น',     Icon: Ship,       color: 'text-blue-600' },
+  { value: 'walk',   label: 'เดินเท้าเท่านั้น', desc: 'ยานพาหนะเข้าไม่ถึง ต้องเดินลุยน้ำ/เดินเท้าเข้าไป', Icon: Footprints, color: 'text-emerald-600' },
 ]
 
 // ── Reusable icon-input wrapper ────────────────────────────────────────

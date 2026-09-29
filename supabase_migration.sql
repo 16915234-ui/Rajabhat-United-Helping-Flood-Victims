@@ -19,12 +19,14 @@ CREATE TABLE IF NOT EXISTS public.relief_registrations (
   image_url         TEXT        NOT NULL,
   landmark          TEXT,
   google_maps_link  TEXT,
-  access_condition  TEXT        NOT NULL CHECK (access_condition IN ('car', 'pickup', 'boat')),
+  access_condition  TEXT        NOT NULL CHECK (access_condition IN ('car', 'pickup', 'boat', 'walk')),
   status            TEXT        NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'in_progress', 'completed'))
 );
 
--- For existing tables that already exist, run this:
+-- For existing tables that already exist, run these:
 ALTER TABLE public.relief_registrations ADD COLUMN IF NOT EXISTS student_id TEXT;
+ALTER TABLE public.relief_registrations DROP CONSTRAINT IF EXISTS relief_registrations_access_condition_check;
+ALTER TABLE public.relief_registrations ADD CONSTRAINT relief_registrations_access_condition_check CHECK (access_condition IN ('car', 'pickup', 'boat', 'walk'));
 
 -- 2. Enable Row Level Security (RLS)
 ALTER TABLE public.relief_registrations ENABLE ROW LEVEL SECURITY;

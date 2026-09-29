@@ -7,7 +7,7 @@ import {
   Search, Filter, RefreshCw, X, Eye, MapPin, Phone, User, Clock,
   CheckCircle, Loader2, Lock, ExternalLink, Truck, Waves, AlertCircle,
   ChevronDown, Users, TrendingUp, Hash, Trash2, Download, CheckSquare,
-  Square, MinusSquare, GraduationCap, BookOpen, ArrowLeftRight, Ship, Car,
+  Square, MinusSquare, GraduationCap, BookOpen, ArrowLeftRight, Ship, Car, Footprints,
 } from 'lucide-react'
 
 // ── Constants ────────────────────────────────────────────────────────────
@@ -20,9 +20,10 @@ const ALL_STATUSES = ['pending', 'in_progress', 'completed'] as const
 type Status = ReliefRegistration['status']
 
 const ACCESS_LABELS: Record<string, { label: string; Icon: React.ElementType; color: string }> = {
-  car:    { label: 'รถยนต์',      Icon: Car,   color: 'text-slate-500'  },
-  pickup: { label: 'รถกระบะยกสูง', Icon: Truck, color: 'text-orange-500' },
-  boat:   { label: 'เรือเท่านั้น', Icon: Ship,  color: 'text-blue-500'   },
+  car:    { label: 'รถยนต์',      Icon: Car,        color: 'text-slate-500'  },
+  pickup: { label: 'รถกระบะยกสูง', Icon: Truck,      color: 'text-orange-500' },
+  boat:   { label: 'เรือเท่านั้น', Icon: Ship,       color: 'text-blue-500'   },
+  walk:   { label: 'เดินเท้า',    Icon: Footprints, color: 'text-emerald-600' },
 }
 
 // ── Excel Export ─────────────────────────────────────────────────────────

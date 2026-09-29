@@ -19,6 +19,7 @@ import {
   Truck,
   Car,
   Ship,
+  Footprints,
   Waves,
   Copy,
   ExternalLink,
@@ -64,6 +65,7 @@ const ACCESS_LABELS: Record<string, { label: string; Icon: React.ElementType; co
   car: { label: 'รถยนต์ธรรมดา', Icon: Car, color: 'text-slate-600' },
   pickup: { label: 'รถกระบะยกสูง', Icon: Truck, color: 'text-orange-600' },
   boat: { label: 'เรือเท่านั้น', Icon: Ship, color: 'text-blue-600' },
+  walk: { label: 'เดินเท้าเท่านั้น', Icon: Footprints, color: 'text-emerald-600' },
 }
 
 function TrackContent() {
