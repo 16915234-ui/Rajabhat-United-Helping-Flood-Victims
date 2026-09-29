@@ -105,7 +105,7 @@ function DetailModal({
   record: ReliefRegistration
   onClose: () => void
   onStatusChange: (id: string, status: Status) => Promise<void>
-  onDelete: (id: string) => Promise<void>
+  onDelete: (id: string) => Promise<boolean>
 }) {
   const [updating, setUpdating] = useState(false)
   const [deleting, setDeleting] = useState(false)
@@ -123,9 +123,11 @@ function DetailModal({
 
   const handleDelete = async () => {
     setDeleting(true)
-    await onDelete(record.id)
+    const success = await onDelete(record.id)
     setDeleting(false)
-    onClose()
+    if (success) {
+      onClose()
+    }
   }
 
   return (
@@ -482,7 +484,7 @@ export default function AdminPage() {
   }
 
   // ── Single delete ──
-  const handleDelete = async (id: string) => {
+  const handleDelete = async (id: string): Promise<boolean> => {
     try {
       const res = await fetch('/api/admin/delete', {
         method: 'POST',
@@ -493,11 +495,14 @@ export default function AdminPage() {
       if (res.ok && data.success) {
         setRecords((prev) => prev.filter((r) => r.id !== id))
         setCheckedIds((prev) => { const n = new Set(prev); n.delete(id); return n })
+        return true
       } else {
         alert(data.message || 'ไม่สามารถลบข้อมูลได้')
+        return false
       }
     } catch (err: unknown) {
       alert('เกิดข้อผิดพลาดในการลบข้อมูล: ' + (err instanceof Error ? err.message : String(err)))
+      return false
     }
   }
 
