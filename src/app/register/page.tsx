@@ -1,0 +1,651 @@
+'use client'
+
+import { useState, useRef, lazy, Suspense } from 'react'
+import { useRouter } from 'next/navigation'
+import Link from 'next/link'
+import Navbar from '@/components/Navbar'
+import HeroBanner from '@/components/HeroBanner'
+import { supabase } from '@/lib/supabase'
+import {
+  User,
+  Phone,
+  MapPin,
+  Camera,
+  Navigation,
+  CheckCircle,
+  ChevronRight,
+  ChevronLeft,
+  Upload,
+  Loader2,
+  AlertCircle,
+  Waves,
+  Copy,
+  Home,
+  Hash,
+  BookOpen,
+  GraduationCap,
+  Car,
+  Truck,
+  Ship,
+  Building2,
+  Flag,
+} from 'lucide-react'
+
+const LocationPicker = lazy(() => import('@/components/LocationPicker'))
+
+type LatLng = { lat: number; lng: number }
+
+type FormData = {
+  full_name: string
+  phone: string
+  line_id: string
+  faculty: string
+  major: string
+  house_no: string      // บ้านเลขที่ / หมู่
+  sub_district: string  // ตำบล / แขวง
+  district: string      // อำเภอ / เขต
+  province: string      // จังหวัด
+  landmark: string
+  access_condition: string
+}
+
+// ── Faculty & Major Data ────────────────────────────────────────────────
+const FACULTIES: { name: string; majors: string[] }[] = [
+  {
+    name: 'คณะครุศาสตร์',
+    majors: [
+      'สาขาวิชา การศึกษา (วิชาเอก คณิตศาสตร์)',
+      'สาขาวิชา การศึกษา (วิชาเอก วิทยาศาสตร์)',
+      'สาขาวิชา การศึกษา (วิชาเอก สังคมศึกษา)',
+      'สาขาวิชา การศึกษา (วิชาเอก คอมพิวเตอร์ศึกษา)',
+      'สาขาวิชา การศึกษา (วิชาเอก พลศึกษา)',
+      'สาขาวิชา การศึกษา (วิชาเอก การสอนภาษาไทย)',
+      'สาขาวิชา การศึกษา (วิชาเอก การสอนภาษาอังกฤษ)',
+      'สาขาวิชา การศึกษา (วิชาเอก การประถมศึกษา)',
+      'สาขาวิชา การศึกษาพิเศษและการสอนภาษาไทย',
+      'สาขาวิชา การศึกษา (วิชาเอกการศึกษาปฐมวัย)',
+    ],
+  },
+  {
+    name: 'คณะมนุษยศาสตร์และสังคมศาสตร์',
+    majors: [
+      'สาขาวิชา นาฏศิลป์ศึกษา',
+      'สาขาวิชา ศิลปศึกษา',
+      'สาขาวิชา ดนตรีศึกษา',
+      'สาขาวิชา นิติศาสตร์',
+      'สาขาวิชา นิเทศศาสตร์ดิจิทัล',
+      'สาขาวิชา การปกครองท้องถิ่น',
+      'สาขาวิชา รัฐประศาสนศาสตร์',
+      'สาขาวิชา ดนตรีสร้างสรรค์',
+      'สาขาวิชา ภาษาอังกฤษ',
+      'สาขาวิชา ภาษาไทย',
+      'สาขาวิชา ภาษาจีน',
+      'สาขาวิชา ภาษาญี่ปุ่น',
+      'สาขาวิชา ประวัติศาสตร์',
+      'สาขาวิชา การพัฒนาชุมชนและสังคม',
+      'สาขาวิชา สหวิทยาการเพื่อการจัดการฮาลาล',
+    ],
+  },
+  {
+    name: 'คณะวิทยาศาสตร์และเทคโนโลยี',
+    majors: [
+      'สาขาวิชา วิทยาศาสตร์ศึกษา (แขนงวิชาฟิสิกส์)',
+      'สาขาวิชา วิทยาศาสตร์ศึกษา (แขนงวิชาเคมี)',
+      'สาขาวิชา วิทยาศาสตร์ศึกษา (แขนงวิชาชีววิทยา)',
+      'สาขาวิชา เทคโนโลยีอุตสาหกรรม (วิชาเอก การจัดการเทคโนโลยีอุตสาหกรรม)',
+      'สาขาวิชา เทคโนโลยีอุตสาหกรรม (วิชาเอก เทคโนโลยีระบบควบคุมการผลิตอัตโนมัติ)',
+      'สาขาวิชา เกษตรศาสตร์',
+      'สาขาวิชา เคมี',
+      'สาขาวิชา วิทยาการคอมพิวเตอร์',
+      'สาขาวิชา เทคโนโลยีสารสนเทศ',
+      'สาขาวิชา อาชีวอนามัยและความปลอดภัย',
+      'สาขาวิชา จุลชีววิทยา',
+      'สาขาวิชา คหกรรมศาสตร์',
+      'สาขาวิชา คณิตศาสตร์ประยุกต์',
+      'สาขาวิชา วิทยาศาสตร์และการจัดการเทคโนโลยีอาหาร',
+      'สาขาวิชา เทคโนโลยีการเกษตรสมัยใหม่',
+      'สาขาวิชา เทคโนโลยีสิ่งแวดล้อม',
+      'สาขาวิชา สาธารณสุขศาสตร์',
+      'สาขาวิชา วิศวกรรมไฟฟ้า',
+      'สาขาวิชา วิศวกรรมการจัดการ',
+      'สาขาวิชา วิศวกรรมปัญญาประดิษฐ์ 2 ปี (ต่อเนื่อง)',
+    ],
+  },
+  {
+    name: 'คณะวิทยาการจัดการ',
+    majors: [
+      'สาขาวิชา การจัดการธุรกิจการค้าสมัยใหม่',
+      'สาขาวิชา การบัญชี',
+      'สาขาวิชา บริหารธุรกิจ (วิชาเอกการจัดการ)',
+      'สาขาวิชา บริหารธุรกิจ (วิชาเอกการจัดการโลจิสติกส์และซัพพลายเชน)',
+      'สาขาวิชา บริหารธุรกิจ (วิชาเอกการบริหารทรัพยากรมนุษย์)',
+      'สาขาวิชา บริหารธุรกิจ (วิชาเอกคอมพิวเตอร์ธุรกิจดิจิทัล)',
+      'สาขาวิชา บริหารธุรกิจ (วิชาเอกการตลาดดิจิทัลและอิเวนต์)',
+      'สาขาวิชา การท่องเที่ยวและบริการ (แขนงวิชาการท่องเที่ยว)',
+      'สาขาวิชา การท่องเที่ยวและบริการ (แขนงวิชาการบริการ)',
+    ],
+  },
+]
+
+const STEPS = [
+  { id: 1, title: 'ข้อมูลนักศึกษา', icon: GraduationCap },
+  { id: 2, title: 'ที่อยู่ & รูปบ้าน', icon: Home },
+  { id: 3, title: 'ข้อมูลการเดินทาง', icon: Navigation },
+]
+
+const ACCESS_CONDITIONS = [
+  { value: 'car',    label: 'รถยนต์ธรรมดา', desc: 'สามารถเข้าถึงได้ด้วยรถยนต์ทั่วไป',       Icon: Car,   color: 'text-slate-600' },
+  { value: 'pickup', label: 'รถกระบะยกสูง', desc: 'ต้องใช้รถกระบะยกสูงหรือรถ 4WD',          Icon: Truck,  color: 'text-orange-600' },
+  { value: 'boat',   label: 'เรือเท่านั้น', desc: 'น้ำท่วมสูง เข้าถึงได้ทางเรือเท่านั้น',  Icon: Ship,   color: 'text-blue-600' },
+]
+
+// ── Reusable icon-input wrapper ────────────────────────────────────────
+function IconInput({
+  id,
+  icon,
+  error,
+  children,
+}: {
+  id?: string
+  icon: React.ReactNode
+  error?: string
+  children: React.ReactNode
+}) {
+  return (
+    <div>
+      <div
+        className={`flex items-center gap-0 bg-white border rounded-xl transition-all duration-200
+          focus-within:ring-2 focus-within:ring-maroon-500 focus-within:border-transparent
+          ${error ? 'border-red-400' : 'border-gray-200'}`}
+      >
+        <span className="pl-4 pr-2 text-gray-400 flex-shrink-0">{icon}</span>
+        {children}
+      </div>
+      {error && (
+        <p className="text-red-500 text-xs mt-1.5 flex items-center gap-1.5">
+          <AlertCircle size={12} className="flex-shrink-0" /> {error}
+        </p>
+      )}
+    </div>
+  )
+}
+
+// ── Main Component ─────────────────────────────────────────────────────
+export default function RegisterPage() {
+  const router = useRouter()
+  const [step, setStep] = useState(1)
+  const [formData, setFormData] = useState<FormData>({
+    full_name: '',
+    phone: '',
+    line_id: '',
+    faculty: '',
+    major: '',
+    house_no: '',
+    sub_district: '',
+    district: '',
+    province: 'พระนครศรีอยุธยา',
+    landmark: '',
+    access_condition: '',
+  })
+  const [location, setLocation] = useState<LatLng | null>(null)
+  const [imageFile, setImageFile] = useState<File | null>(null)
+  const [imagePreview, setImagePreview] = useState<string | null>(null)
+  const [errors, setErrors] = useState<Partial<Record<keyof FormData | 'image', string>>>({})
+  const [submitting, setSubmitting] = useState(false)
+  const [submitError, setSubmitError] = useState<string | null>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
+  const selectedFaculty = FACULTIES.find((f) => f.name === formData.faculty)
+  const majorList = selectedFaculty?.majors ?? []
+
+  const update = (field: keyof FormData, value: string) => {
+    setFormData((prev) => {
+      const next = { ...prev, [field]: value }
+      // reset major when faculty changes
+      if (field === 'faculty') next.major = ''
+      return next
+    })
+    setErrors((prev) => ({ ...prev, [field]: undefined }))
+  }
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    if (file.size > 10 * 1024 * 1024) { setErrors((p) => ({ ...p, image: 'ขนาดไฟล์ต้องไม่เกิน 10MB' })); return }
+    setImageFile(file)
+    setErrors((p) => ({ ...p, image: undefined }))
+    const reader = new FileReader()
+    reader.onload = (ev) => setImagePreview(ev.target?.result as string)
+    reader.readAsDataURL(file)
+  }
+
+  const validateStep = (s: number): boolean => {
+    const e: typeof errors = {}
+    if (s === 1) {
+      if (!formData.full_name.trim()) e.full_name = 'กรุณากรอกชื่อ-นามสกุล'
+      if (!formData.faculty) e.faculty = 'กรุณาเลือกคณะ'
+      if (!formData.major) e.major = 'กรุณาเลือกสาขาวิชา'
+      if (!formData.phone.trim()) e.phone = 'กรุณากรอกเบอร์โทรศัพท์'
+      else if (!/^[0-9]{9,10}$/.test(formData.phone.replace(/[-\s]/g, ''))) e.phone = 'เบอร์โทรไม่ถูกต้อง (9-10 หลัก)'
+    }
+    if (s === 2) {
+      if (!formData.house_no.trim()) e.house_no = 'กรุณากรอกบ้านเลขที่ / หมู่'
+      if (!formData.sub_district.trim()) e.sub_district = 'กรุณากรอกตำบล / แขวง'
+      if (!formData.district.trim()) e.district = 'กรุณากรอกอำเภอ / เขต'
+      if (!formData.province.trim()) e.province = 'กรุณากรอกจังหวัด'
+      if (!imageFile) e.image = 'กรุณาอัปโหลดรูปถ่ายสภาพบ้าน'
+    }
+    if (s === 3) {
+      if (!formData.access_condition) e.access_condition = 'กรุณาเลือกสภาพเส้นทาง'
+    }
+    setErrors(e)
+    return Object.keys(e).length === 0
+  }
+
+  const nextStep = () => { if (validateStep(step)) setStep((s) => Math.min(s + 1, 3)) }
+  const prevStep = () => setStep((s) => Math.max(s - 1, 1))
+
+  const handleSubmit = async () => {
+    if (!validateStep(3)) return
+    setSubmitting(true); setSubmitError(null)
+    try {
+      if (!imageFile) throw new Error('กรุณาอัปโหลดรูปถ่ายสภาพบ้าน')
+      const ext = imageFile.name.split('.').pop()
+      const fileName = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`
+      const { error: uploadError } = await supabase.storage.from('flood-photos').upload(fileName, imageFile, { cacheControl: '3600', upsert: false })
+      if (uploadError) throw new Error(`อัปโหลดรูปภาพล้มเหลว: ${uploadError.message}`)
+      const { data: urlData } = supabase.storage.from('flood-photos').getPublicUrl(fileName)
+      const googleMapsLink = location ? `https://www.google.com/maps?q=${location.lat},${location.lng}` : null
+
+      const fullAddress = `บ้านเลขที่/หมู่ ${formData.house_no.trim()} ต.${formData.sub_district.trim()} อ.${formData.district.trim()} จ.${formData.province.trim()}`
+
+      const { data, error: insertError } = await supabase
+        .from('relief_registrations')
+        .insert({
+          full_name: formData.full_name.trim(),
+          user_type: 'student',
+          faculty: formData.faculty,
+          major: formData.major,
+          phone: formData.phone.trim(),
+          line_id: formData.line_id.trim() || null,
+          address: fullAddress,
+          district: formData.district.trim() || null,
+          image_url: urlData.publicUrl,
+          landmark: formData.landmark.trim() || null,
+          google_maps_link: googleMapsLink,
+          access_condition: formData.access_condition,
+          status: 'pending',
+        })
+        .select('id')
+        .single()
+
+      if (insertError) throw new Error(`บันทึกข้อมูลล้มเหลว: ${insertError.message}`)
+
+      // Redirect directly to tracking page
+      router.push(`/track?id=${data.id}`)
+    } catch (err: unknown) {
+      setSubmitError(err instanceof Error ? err.message : 'เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง')
+      setSubmitting(false)
+    }
+  }
+
+  const handleReset = () => {
+    setStep(1)
+    setFormData({
+      full_name: '',
+      phone: '',
+      line_id: '',
+      faculty: '',
+      major: '',
+      house_no: '',
+      sub_district: '',
+      district: '',
+      province: 'พระนครศรีอยุธยา',
+      landmark: '',
+      access_condition: '',
+    })
+    setLocation(null)
+    setImageFile(null)
+    setImagePreview(null)
+    setErrors({})
+  }
+
+  const progress = ((step - 1) / (STEPS.length - 1)) * 100
+
+  // ── Shared select style ──
+  const selectCls = `flex-1 py-3 pr-4 bg-transparent outline-none text-gray-800 text-sm appearance-none cursor-pointer`
+  const inputCls = `flex-1 py-3 pr-4 bg-transparent outline-none text-gray-800 text-sm placeholder:text-gray-400`
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      <Navbar />
+
+      {/* ── Magnificent ARU Hero Banner ── */}
+      <HeroBanner />
+
+      <div className="max-w-2xl mx-auto px-4 py-8">
+        {/* Step Indicator */}
+        <div className="mb-8">
+          <div className="h-1.5 bg-gray-200 rounded-full mb-6">
+            <div className="h-1.5 bg-gradient-to-r from-maroon-700 to-gold-500 rounded-full transition-all duration-500" style={{ width: `${progress}%` }} />
+          </div>
+          <div className="flex justify-between">
+            {STEPS.map((s) => {
+              const Icon = s.icon
+              const isActive = step === s.id
+              const isDone = step > s.id
+              return (
+                <div key={s.id} className="flex flex-col items-center gap-2">
+                  <div className={`w-10 h-10 rounded-full flex items-center justify-center transition-all duration-300 ${isDone ? 'bg-green-500 text-white shadow-md' : isActive ? 'bg-maroon-700 text-white shadow-lg scale-110' : 'bg-white text-gray-400 border-2 border-gray-200'}`}>
+                    {isDone ? <CheckCircle size={18} /> : <Icon size={16} />}
+                  </div>
+                  <span className={`text-xs font-medium hidden sm:block ${isActive ? 'text-maroon-700' : isDone ? 'text-green-600' : 'text-gray-400'}`}>{s.title}</span>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+
+        {/* Form Card */}
+        <div className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
+          <div className="bg-maroon-50 border-b border-maroon-100 px-6 py-4">
+            <h2 className="font-bold text-maroon-800 text-lg">ขั้นตอนที่ {step}: {STEPS[step - 1].title}</h2>
+          </div>
+
+          <div className="p-6 sm:p-8">
+
+            {/* ── STEP 1: Student Info ── */}
+            {step === 1 && (
+              <div className="space-y-5">
+                {/* Student badge */}
+                <div className="flex items-center gap-3 p-4 bg-maroon-50 border border-maroon-100 rounded-2xl">
+                  <div className="w-10 h-10 rounded-full bg-maroon-700 flex items-center justify-center flex-shrink-0">
+                    <GraduationCap size={18} className="text-white" />
+                  </div>
+                  <div>
+                    <p className="font-bold text-maroon-800 text-sm">นักศึกษา มรภ.พระนครศรีอยุธยา</p>
+                    <p className="text-xs text-maroon-500">Phranakhon Si Ayutthaya Rajabhat University</p>
+                  </div>
+                </div>
+
+                {/* Full Name */}
+                <div>
+                  <label htmlFor="full_name" className="block text-sm font-semibold text-gray-700 mb-2">
+                    ชื่อ-นามสกุล <span className="text-red-500">*</span>
+                  </label>
+                  <IconInput icon={<User size={16} />} error={errors.full_name}>
+                    <input id="full_name" type="text" value={formData.full_name} onChange={(e) => update('full_name', e.target.value)} placeholder="เช่น นายสมชาย ใจดี" className={inputCls} />
+                  </IconInput>
+                </div>
+
+                {/* Faculty */}
+                <div>
+                  <label htmlFor="faculty" className="block text-sm font-semibold text-gray-700 mb-2">
+                    คณะ <span className="text-red-500">*</span>
+                  </label>
+                  <IconInput icon={<BookOpen size={16} />} error={errors.faculty}>
+                    <select id="faculty" value={formData.faculty} onChange={(e) => update('faculty', e.target.value)} className={selectCls}>
+                      <option value="">— เลือกคณะ —</option>
+                      {FACULTIES.map((f) => (
+                        <option key={f.name} value={f.name}>{f.name}</option>
+                      ))}
+                    </select>
+                  </IconInput>
+                </div>
+
+                {/* Major */}
+                <div>
+                  <label htmlFor="major" className="block text-sm font-semibold text-gray-700 mb-2">
+                    สาขาวิชา <span className="text-red-500">*</span>
+                  </label>
+                  <IconInput icon={<GraduationCap size={16} />} error={errors.major}>
+                    <select
+                      id="major"
+                      value={formData.major}
+                      onChange={(e) => update('major', e.target.value)}
+                      disabled={!formData.faculty}
+                      className={`${selectCls} disabled:text-gray-300`}
+                    >
+                      <option value="">{formData.faculty ? '— เลือกสาขาวิชา —' : '— กรุณาเลือกคณะก่อน —'}</option>
+                      {majorList.map((m) => (
+                        <option key={m} value={m}>{m}</option>
+                      ))}
+                    </select>
+                  </IconInput>
+                </div>
+
+                {/* Phone */}
+                <div>
+                  <label htmlFor="phone" className="block text-sm font-semibold text-gray-700 mb-2">
+                    เบอร์โทรศัพท์ <span className="text-red-500">*</span>
+                  </label>
+                  <IconInput icon={<Phone size={16} />} error={errors.phone}>
+                    <input id="phone" type="tel" value={formData.phone} onChange={(e) => update('phone', e.target.value)} placeholder="0812345678" className={inputCls} />
+                  </IconInput>
+                </div>
+
+                {/* Line ID */}
+                <div>
+                  <label htmlFor="line_id" className="block text-sm font-semibold text-gray-700 mb-2">
+                    Line ID <span className="text-gray-400 font-normal">(ไม่บังคับ)</span>
+                  </label>
+                  <IconInput icon={<Hash size={16} />}>
+                    <input id="line_id" type="text" value={formData.line_id} onChange={(e) => update('line_id', e.target.value)} placeholder="เช่น somchai_123" className={inputCls} />
+                  </IconInput>
+                </div>
+              </div>
+            )}
+
+            {/* ── STEP 2: Address & Photo ── */}
+            {step === 2 && (
+              <div className="space-y-5">
+                <div className="bg-maroon-50/60 p-4 rounded-2xl border border-maroon-100">
+                  <p className="text-xs font-bold text-maroon-900 mb-1 flex items-center gap-1.5">
+                    <Home size={14} className="text-maroon-700" /> ระบุข้อมูลที่อยู่บ้านที่ต้องการความช่วยเหลือ
+                  </p>
+                  <p className="text-xs text-gray-500">กรุณากรอกข้อมูลให้ครบถ้วน เพื่อให้ทีมงานจิตอาสาเข้าถึงพื้นที่ได้อย่างแม่นยำ</p>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {/* บ้านเลขที่ / หมู่ */}
+                  <div>
+                    <label htmlFor="house_no" className="block text-sm font-semibold text-gray-700 mb-2">
+                      บ้านเลขที่ / หมู่ <span className="text-red-500">*</span>
+                    </label>
+                    <IconInput icon={<Home size={16} />} error={errors.house_no}>
+                      <input
+                        id="house_no"
+                        type="text"
+                        value={formData.house_no}
+                        onChange={(e) => update('house_no', e.target.value)}
+                        placeholder="เช่น 12/3 หมู่ 4"
+                        className={inputCls}
+                      />
+                    </IconInput>
+                  </div>
+
+                  {/* ตำบล / แขวง */}
+                  <div>
+                    <label htmlFor="sub_district" className="block text-sm font-semibold text-gray-700 mb-2">
+                      ตำบล / แขวง <span className="text-red-500">*</span>
+                    </label>
+                    <IconInput icon={<Building2 size={16} />} error={errors.sub_district}>
+                      <input
+                        id="sub_district"
+                        type="text"
+                        value={formData.sub_district}
+                        onChange={(e) => update('sub_district', e.target.value)}
+                        placeholder="เช่น ประตูชัย"
+                        className={inputCls}
+                      />
+                    </IconInput>
+                  </div>
+
+                  {/* อำเภอ / เขต */}
+                  <div>
+                    <label htmlFor="district" className="block text-sm font-semibold text-gray-700 mb-2">
+                      อำเภอ / เขต <span className="text-red-500">*</span>
+                    </label>
+                    <IconInput icon={<MapPin size={16} />} error={errors.district}>
+                      <input
+                        id="district"
+                        type="text"
+                        value={formData.district}
+                        onChange={(e) => update('district', e.target.value)}
+                        placeholder="เช่น พระนครศรีอยุธยา"
+                        className={inputCls}
+                      />
+                    </IconInput>
+                  </div>
+
+                  {/* จังหวัด */}
+                  <div>
+                    <label htmlFor="province" className="block text-sm font-semibold text-gray-700 mb-2">
+                      จังหวัด <span className="text-red-500">*</span>
+                    </label>
+                    <IconInput icon={<Flag size={16} />} error={errors.province}>
+                      <input
+                        id="province"
+                        type="text"
+                        value={formData.province}
+                        onChange={(e) => update('province', e.target.value)}
+                        placeholder="เช่น พระนครศรีอยุธยา"
+                        className={inputCls}
+                      />
+                    </IconInput>
+                  </div>
+                </div>
+
+                {/* Photo Upload */}
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    รูปถ่ายสภาพบ้าน <span className="text-red-500">*</span>
+                  </label>
+                  <input ref={fileInputRef} id="house_photo" type="file" accept="image/*" className="hidden" onChange={handleImageChange} />
+                  {imagePreview ? (
+                    <div className="relative rounded-2xl overflow-hidden border-2 border-maroon-300 group cursor-pointer" onClick={() => fileInputRef.current?.click()}>
+                      <img src={imagePreview} alt="Preview" className="w-full h-52 object-cover" />
+                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2 text-white font-semibold text-sm">
+                        <Camera size={20} /> เปลี่ยนรูป
+                      </div>
+                    </div>
+                  ) : (
+                    <button type="button" onClick={() => fileInputRef.current?.click()}
+                      className={`w-full h-40 rounded-2xl border-2 border-dashed flex flex-col items-center justify-center gap-3 transition-all duration-200 ${errors.image ? 'border-red-400 bg-red-50' : 'border-gray-300 bg-gray-50 hover:border-maroon-400 hover:bg-maroon-50'}`}>
+                      <div className="w-12 h-12 rounded-full bg-white shadow flex items-center justify-center">
+                        <Upload size={20} className="text-maroon-600" />
+                      </div>
+                      <div className="text-center">
+                        <p className="font-semibold text-gray-700 text-sm">คลิกเพื่ออัปโหลดรูปภาพ</p>
+                        <p className="text-xs text-gray-400 mt-1">JPG, PNG, HEIC (สูงสุด 10MB)</p>
+                      </div>
+                    </button>
+                  )}
+                  {errors.image && <p className="text-red-500 text-xs mt-1.5 flex items-center gap-1.5"><AlertCircle size={12} className="flex-shrink-0" /> {errors.image}</p>}
+                </div>
+              </div>
+            )}
+
+            {/* ── STEP 3: Field Info + Map ── */}
+            {step === 3 && (
+              <div className="space-y-6">
+                {/* Landmark */}
+                <div>
+                  <label htmlFor="landmark" className="block text-sm font-semibold text-gray-700 mb-2">
+                    จุดสังเกตใกล้เคียง <span className="text-gray-400 font-normal">(ไม่บังคับ)</span>
+                  </label>
+                  <IconInput icon={<MapPin size={16} />}>
+                    <input id="landmark" type="text" value={formData.landmark} onChange={(e) => update('landmark', e.target.value)} placeholder="เช่น ใกล้วัดสุวรรณดาราราม, ตรงข้ามโรงเรียน..." className={inputCls} />
+                  </IconInput>
+                </div>
+
+                {/* Interactive Map */}
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-1">
+                    ปักหมุดตำแหน่งบ้าน <span className="text-gray-400 font-normal">(แนะนำ แต่ไม่บังคับ)</span>
+                  </label>
+                  <p className="text-xs text-gray-400 mb-3">ช่วยให้ทีมงานค้นหาบ้านท่านได้แม่นยำยิ่งขึ้น</p>
+                  <Suspense fallback={
+                    <div className="w-full h-64 rounded-2xl bg-gray-100 flex items-center justify-center border border-gray-200">
+                      <div className="flex items-center gap-2 text-gray-400">
+                        <Loader2 size={20} className="animate-spin" />
+                        <span className="text-sm">กำลังโหลดแผนที่...</span>
+                      </div>
+                    </div>
+                  }>
+                    <LocationPicker value={location} onChange={setLocation} />
+                  </Suspense>
+                </div>
+
+                {/* Access Condition */}
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    สภาพการเข้าถึง <span className="text-red-500">*</span>
+                  </label>
+                  <div className="space-y-3">
+                    {ACCESS_CONDITIONS.map((opt) => {
+                      const AccIcon = opt.Icon
+                      const isSelected = formData.access_condition === opt.value
+                      return (
+                        <button
+                          key={opt.value}
+                          type="button"
+                          id={`access_${opt.value}`}
+                          onClick={() => update('access_condition', opt.value)}
+                          className={`w-full p-4 rounded-xl border-2 flex items-center gap-4 text-left transition-all duration-200 ${
+                            isSelected ? 'border-maroon-600 bg-maroon-50 shadow-sm' : 'border-gray-200 hover:border-gray-300 bg-gray-50'
+                          }`}
+                        >
+                          <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 transition-colors ${
+                            isSelected ? 'bg-maroon-700 text-white' : `bg-white border border-gray-200 ${opt.color}`
+                          }`}>
+                            <AccIcon size={20} />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="font-semibold text-gray-800 text-sm">{opt.label}</p>
+                            <p className="text-xs text-gray-500 mt-0.5">{opt.desc}</p>
+                          </div>
+                          {isSelected && <CheckCircle size={18} className="text-maroon-600 flex-shrink-0" />}
+                        </button>
+                      )
+                    })}
+                  </div>
+                  {errors.access_condition && (
+                    <p className="text-red-500 text-xs mt-2 flex items-center gap-1.5">
+                      <AlertCircle size={12} className="flex-shrink-0" /> {errors.access_condition}
+                    </p>
+                  )}
+                </div>
+
+                {submitError && (
+                  <div className="p-4 bg-red-50 border border-red-200 rounded-xl flex items-start gap-3">
+                    <AlertCircle size={18} className="text-red-500 flex-shrink-0 mt-0.5" />
+                    <p className="text-red-700 text-sm">{submitError}</p>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Navigation Buttons */}
+          <div className="border-t border-gray-100 px-6 sm:px-8 py-5 flex justify-between gap-4 bg-gray-50/50">
+            <button type="button" onClick={prevStep} disabled={step === 1}
+              className={`flex items-center gap-2 px-5 py-3 rounded-xl font-semibold text-sm transition-all ${step === 1 ? 'text-gray-300 cursor-not-allowed' : 'text-gray-600 hover:bg-gray-200 active:scale-95'}`}>
+              <ChevronLeft size={18} /> ก่อนหน้า
+            </button>
+            {step < 3 ? (
+              <button type="button" onClick={nextStep} className="flex items-center gap-2 px-6 py-3 bg-maroon-700 hover:bg-maroon-600 text-white font-semibold text-sm rounded-xl transition-all active:scale-95 shadow-sm">
+                ถัดไป <ChevronRight size={18} />
+              </button>
+            ) : (
+              <button type="button" onClick={handleSubmit} disabled={submitting} id="submit-register"
+                className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-maroon-700 to-maroon-800 hover:from-maroon-600 hover:to-maroon-700 text-white font-bold text-sm rounded-xl transition-all active:scale-95 shadow-md disabled:opacity-70 disabled:cursor-not-allowed">
+                {submitting ? <><Loader2 size={18} className="animate-spin" /> กำลังส่ง...</> : <><CheckCircle size={18} /> ยืนยันการลงทะเบียน</>}
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}

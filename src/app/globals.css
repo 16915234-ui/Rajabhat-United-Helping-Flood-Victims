@@ -1,0 +1,136 @@
+@import "tailwindcss";
+@import "leaflet/dist/leaflet.css";
+
+@theme {
+  --color-maroon-50: #fdf2f4;
+  --color-maroon-100: #fbe8ec;
+  --color-maroon-200: #f5c9d4;
+  --color-maroon-300: #ed9aaf;
+  --color-maroon-400: #e16284;
+  --color-maroon-500: #cf3660;
+  --color-maroon-600: #b01c48;
+  --color-maroon-700: #900020;
+  --color-maroon-800: #780029;
+  --color-maroon-900: #660026;
+  --color-maroon-950: #3b0013;
+
+  --color-gold-50: #fffbeb;
+  --color-gold-100: #fef3c7;
+  --color-gold-200: #fde68a;
+  --color-gold-300: #fcd34d;
+  --color-gold-400: #fbbf24;
+  --color-gold-500: #f59e0b;
+  --color-gold-600: #d97706;
+  --color-gold-700: #b45309;
+  --color-gold-800: #92400e;
+  --color-gold-900: #78350f;
+
+  --font-thai: var(--font-noto-thai), system-ui, sans-serif;
+}
+
+body {
+  font-family: var(--font-thai);
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #f1f5f9;
+}
+::-webkit-scrollbar-thumb {
+  background: #900020;
+  border-radius: 3px;
+}
+
+/* Smooth transitions globally */
+* {
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Hero gradient animation */
+@keyframes gradientShift {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+.hero-gradient {
+  background: linear-gradient(135deg, #3b0013 0%, #900020 35%, #b01c48 60%, #d97706 100%);
+  background-size: 300% 300%;
+  animation: gradientShift 8s ease infinite;
+}
+
+/* Float animation for icons */
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-8px); }
+}
+
+.float-anim {
+  animation: float 3s ease-in-out infinite;
+}
+
+/* Pulse ring animation */
+@keyframes pulseRing {
+  0% { transform: scale(1); opacity: 0.8; }
+  100% { transform: scale(1.5); opacity: 0; }
+}
+
+.pulse-ring::before {
+  content: '';
+  position: absolute;
+  inset: -4px;
+  border-radius: inherit;
+  background: currentColor;
+  animation: pulseRing 2s ease-out infinite;
+}
+
+/* Card hover effect */
+.card-hover {
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+.card-hover:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 20px 40px -12px rgba(144, 0, 32, 0.25);
+}
+
+/* Wave animation for water effect */
+@keyframes wave {
+  0% { transform: translateX(0) scaleY(1); }
+  50% { transform: translateX(-25%) scaleY(0.85); }
+  100% { transform: translateX(-50%) scaleY(1); }
+}
+
+.wave-anim {
+  animation: wave 6s linear infinite;
+}
+
+/* Status badge styles */
+.badge-pending {
+  background-color: #fef3c7;
+  color: #92400e;
+  border: 1px solid #fde68a;
+}
+.badge-in_progress {
+  background-color: #dbeafe;
+  color: #1e40af;
+  border: 1px solid #bfdbfe;
+}
+.badge-completed {
+  background-color: #dcfce7;
+  color: #166534;
+  border: 1px solid #bbf7d0;
+}
+
+/* Form input focus ring */
+.input-field {
+  @apply w-full px-4 py-3 rounded-xl border border-gray-200 bg-white text-gray-800
+         focus:outline-none focus:ring-2 focus:ring-maroon-500 focus:border-transparent
+         transition-all duration-200 placeholder:text-gray-400 text-sm;
+}
+
+.input-field:focus {
+  box-shadow: 0 0 0 3px rgba(144, 0, 32, 0.12);
+}
