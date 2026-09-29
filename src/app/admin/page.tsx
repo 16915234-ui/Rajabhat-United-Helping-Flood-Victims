@@ -462,16 +462,42 @@ export default function AdminPage() {
 
   // ── Single status change ──
   const handleStatusChange = async (id: string, status: Status) => {
-    await supabase.from('relief_registrations').update({ status }).eq('id', id)
-    setRecords((prev) => prev.map((r) => (r.id === id ? { ...r, status } : r)))
-    if (selected?.id === id) setSelected((prev) => prev ? { ...prev, status } : null)
+    try {
+      const res = await fetch('/api/admin/status', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, status }),
+      })
+      if (!res.ok) {
+        await supabase.from('relief_registrations').update({ status }).eq('id', id)
+      }
+      setRecords((prev) => prev.map((r) => (r.id === id ? { ...r, status } : r)))
+      if (selected?.id === id) setSelected((prev) => (prev ? { ...prev, status } : null))
+    } catch (_) {
+      await supabase.from('relief_registrations').update({ status }).eq('id', id)
+      setRecords((prev) => prev.map((r) => (r.id === id ? { ...r, status } : r)))
+      if (selected?.id === id) setSelected((prev) => (prev ? { ...prev, status } : null))
+    }
   }
 
   // ── Single delete ──
   const handleDelete = async (id: string) => {
-    await supabase.from('relief_registrations').delete().eq('id', id)
-    setRecords((prev) => prev.filter((r) => r.id !== id))
-    setCheckedIds((prev) => { const n = new Set(prev); n.delete(id); return n })
+    try {
+      const res = await fetch('/api/admin/delete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id }),
+      })
+      const data = await res.json()
+      if (res.ok && data.success) {
+        setRecords((prev) => prev.filter((r) => r.id !== id))
+        setCheckedIds((prev) => { const n = new Set(prev); n.delete(id); return n })
+      } else {
+        alert(data.message || 'ไม่สามารถลบข้อมูลได้')
+      }
+    } catch (err: unknown) {
+      alert('เกิดข้อผิดพลาดในการลบข้อมูล: ' + (err instanceof Error ? err.message : String(err)))
+    }
   }
 
   // ── Bulk operations ──
@@ -479,20 +505,48 @@ export default function AdminPage() {
     if (!checkedIds.size) return
     setBulkLoading(true)
     const ids = [...checkedIds]
-    await supabase.from('relief_registrations').delete().in('id', ids)
-    setRecords((prev) => prev.filter((r) => !checkedIds.has(r.id)))
-    setCheckedIds(new Set())
-    setBulkLoading(false)
+    try {
+      const res = await fetch('/api/admin/delete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ids }),
+      })
+      const data = await res.json()
+      if (res.ok && data.success) {
+        setRecords((prev) => prev.filter((r) => !checkedIds.has(r.id)))
+        setCheckedIds(new Set())
+      } else {
+        alert(data.message || 'ไม่สามารถลบข้อมูลได้')
+      }
+    } catch (err: unknown) {
+      alert('เกิดข้อผิดพลาดในการลบข้อมูล: ' + (err instanceof Error ? err.message : String(err)))
+    } finally {
+      setBulkLoading(false)
+    }
   }
 
   const bulkStatusChange = async (status: Status) => {
     if (!checkedIds.size) return
     setBulkLoading(true)
     const ids = [...checkedIds]
-    await supabase.from('relief_registrations').update({ status }).in('id', ids)
-    setRecords((prev) => prev.map((r) => checkedIds.has(r.id) ? { ...r, status } : r))
-    setCheckedIds(new Set())
-    setBulkLoading(false)
+    try {
+      const res = await fetch('/api/admin/status', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ids, status }),
+      })
+      if (!res.ok) {
+        await supabase.from('relief_registrations').update({ status }).in('id', ids)
+      }
+      setRecords((prev) => prev.map((r) => (checkedIds.has(r.id) ? { ...r, status } : r)))
+      setCheckedIds(new Set())
+    } catch (_) {
+      await supabase.from('relief_registrations').update({ status }).in('id', ids)
+      setRecords((prev) => prev.map((r) => (checkedIds.has(r.id) ? { ...r, status } : r)))
+      setCheckedIds(new Set())
+    } finally {
+      setBulkLoading(false)
+    }
   }
 
   const bulkExport = () => {
