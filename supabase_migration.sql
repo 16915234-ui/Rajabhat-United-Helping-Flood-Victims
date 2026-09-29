@@ -8,6 +8,7 @@ CREATE TABLE IF NOT EXISTS public.relief_registrations (
   id                UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
   created_at        TIMESTAMPTZ NOT NULL DEFAULT now(),
   full_name         TEXT        NOT NULL,
+  student_id        TEXT,
   user_type         TEXT        NOT NULL DEFAULT 'student' CHECK (user_type IN ('student', 'citizen')),
   faculty           TEXT,
   major             TEXT,
@@ -21,6 +22,9 @@ CREATE TABLE IF NOT EXISTS public.relief_registrations (
   access_condition  TEXT        NOT NULL CHECK (access_condition IN ('car', 'pickup', 'boat')),
   status            TEXT        NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'in_progress', 'completed'))
 );
+
+-- For existing tables that already exist, run this:
+ALTER TABLE public.relief_registrations ADD COLUMN IF NOT EXISTS student_id TEXT;
 
 -- 2. Enable Row Level Security (RLS)
 ALTER TABLE public.relief_registrations ENABLE ROW LEVEL SECURITY;

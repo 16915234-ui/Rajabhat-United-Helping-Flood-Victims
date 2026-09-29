@@ -107,7 +107,21 @@ function TrackContent() {
         }
       }
 
-      // 2. Fallback: match by prefix (e.g. first 8 characters)
+      // 2. Search exact match by student_id
+      const { data: studentMatch, error: studentError } = await supabase
+        .from('relief_registrations')
+        .select('*')
+        .eq('student_id', q)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+
+      if (!studentError && studentMatch) {
+        setRecord(studentMatch as ReliefRegistration)
+        return
+      }
+
+      // 3. Fallback: match by prefix (e.g. first 8 characters of ID) or student ID substring
       const { data, error } = await supabase
         .from('relief_registrations')
         .select('*')
@@ -116,12 +130,16 @@ function TrackContent() {
 
       if (error) throw error
 
-      const found = data?.find((r) => r.id.toLowerCase().startsWith(q))
+      const found = data?.find(
+        (r) =>
+          r.id.toLowerCase().startsWith(q) ||
+          (r.student_id && r.student_id.toLowerCase().includes(q))
+      )
       if (found) {
         setRecord(found as ReliefRegistration)
       } else {
         setRecord(null)
-        setErrorMsg('ไม่พบข้อมูลรหัสติดตามนี้ กรุณาตรวจสอบรหัสอีกครั้ง')
+        setErrorMsg('ไม่พบข้อมูลรหัสติดตามหรือรหัสนักศึกษานี้ กรุณาตรวจสอบอีกครั้ง')
       }
     } catch (err: unknown) {
       setErrorMsg(err instanceof Error ? err.message : 'เกิดข้อผิดพลาดในการค้นหา')
@@ -172,7 +190,7 @@ function TrackContent() {
                 type="text"
                 value={inputVal}
                 onChange={(e) => setInputVal(e.target.value)}
-                placeholder="กรอกรหัสติดตาม (เช่น 8 หลักแรก หรือ UUID)"
+                placeholder="กรอกรหัสติดตาม หรือ รหัสนักศึกษา (เช่น 8 หลักแรก หรือ 6514...)"
                 className="w-full pl-11 pr-4 py-3 bg-transparent text-gray-900 placeholder:text-gray-400 text-sm font-mono outline-none"
                 autoFocus={!initialId}
               />
@@ -302,6 +320,14 @@ function TrackContent() {
                   <p className="text-xs text-gray-400 mb-0.5">ชื่อ-นามสกุล</p>
                   <p className="font-semibold text-gray-900 text-sm">{record.full_name}</p>
                 </div>
+                {record.student_id && (
+                  <div>
+                    <p className="text-xs text-gray-400 mb-0.5 flex items-center gap-1">
+                      <GraduationCap size={13} className="text-maroon-600" /> รหัสนักศึกษา
+                    </p>
+                    <p className="font-mono font-bold text-maroon-800 text-sm">{record.student_id}</p>
+                  </div>
+                )}
                 <div>
                   <p className="text-xs text-gray-400 mb-0.5">เบอร์โทรศัพท์</p>
                   <p className="font-mono font-semibold text-gray-800 text-sm">{record.phone}</p>

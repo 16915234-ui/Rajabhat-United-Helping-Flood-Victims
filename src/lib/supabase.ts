@@ -14,6 +14,7 @@ export type ReliefRegistration = {
   id: string
   created_at: string
   full_name: string
+  student_id?: string | null
   user_type: 'student' | 'citizen'
   faculty?: string | null
   major?: string | null

@@ -29,7 +29,8 @@ const ACCESS_LABELS: Record<string, { label: string; Icon: React.ElementType; co
 function exportToExcel(records: ReliefRegistration[]) {
   const rows = records.map((r, i) => ({
     'ลำดับ': i + 1,
-    'รหัส': r.id.slice(0, 8).toUpperCase(),
+    'รหัสเคส': r.id.slice(0, 8).toUpperCase(),
+    'รหัสนักศึกษา': (r as any).student_id ?? '-',
     'ชื่อ-นามสกุล': r.full_name,
     'คณะ': (r as any).faculty ?? '-',
     'สาขา': (r as any).major ?? '-',
@@ -46,7 +47,7 @@ function exportToExcel(records: ReliefRegistration[]) {
   const ws = XLSX.utils.json_to_sheet(rows)
   // Column widths
   ws['!cols'] = [
-    { wch: 6 }, { wch: 10 }, { wch: 22 }, { wch: 28 }, { wch: 40 },
+    { wch: 6 }, { wch: 10 }, { wch: 16 }, { wch: 22 }, { wch: 28 }, { wch: 40 },
     { wch: 14 }, { wch: 16 }, { wch: 40 }, { wch: 18 }, { wch: 24 },
     { wch: 40 }, { wch: 16 }, { wch: 16 }, { wch: 22 },
   ]
@@ -167,6 +168,10 @@ function DetailModal({
           <div className="grid grid-cols-2 gap-4 bg-gray-50 rounded-2xl p-4">
             <InfoRow icon={<GraduationCap size={14} className="text-maroon-600" />} label="ประเภท"
               value={(record as any).faculty ? '🎓 นักศึกษา' : record.user_type === 'student' ? '🎓 นักศึกษา' : '🏘️ ประชาชน'} />
+            {record.student_id && (
+              <InfoRow icon={<Hash size={14} className="text-maroon-600" />} label="รหัสนักศึกษา"
+                value={<span className="font-mono text-maroon-800 font-bold">{record.student_id}</span>} />
+            )}
             <InfoRow icon={<Phone size={14} className="text-green-600" />} label="โทรศัพท์"
               value={<a href={`tel:${record.phone}`} className="text-maroon-700 hover:underline font-mono">{record.phone}</a>} />
             {(record as any).faculty && (
@@ -351,6 +356,7 @@ function LoginScreen({ onLogin }: { onLogin: () => void }) {
 // ── Main Admin Page ───────────────────────────────────────────────────────
 export default function AdminPage() {
   const [authed, setAuthed] = useState(false)
+  const [sessionChecked, setSessionChecked] = useState(false)
   const [records, setRecords] = useState<ReliefRegistration[]>([])
   const [loading, setLoading] = useState(false)
   const [bulkLoading, setBulkLoading] = useState(false)
@@ -358,6 +364,31 @@ export default function AdminPage() {
   const [statusFilter, setStatusFilter] = useState<string>('all')
   const [selected, setSelected] = useState<ReliefRegistration | null>(null)
   const [checkedIds, setCheckedIds] = useState<Set<string>>(new Set())
+
+  // Restore session from localStorage on mount
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('aru_admin_session')
+      if (saved === 'true') {
+        setAuthed(true)
+      }
+    } catch (_) {}
+    setSessionChecked(true)
+  }, [])
+
+  const handleLoginSuccess = () => {
+    try {
+      localStorage.setItem('aru_admin_session', 'true')
+    } catch (_) {}
+    setAuthed(true)
+  }
+
+  const handleLogout = () => {
+    try {
+      localStorage.removeItem('aru_admin_session')
+    } catch (_) {}
+    setAuthed(false)
+  }
 
   const fetchData = useCallback(async () => {
     setLoading(true)
@@ -374,6 +405,7 @@ export default function AdminPage() {
     const matchStatus = statusFilter === 'all' || r.status === statusFilter
     const q = search.toLowerCase()
     const matchSearch = !q || r.full_name.toLowerCase().includes(q) ||
+      (r.student_id?.toLowerCase().includes(q) ?? false) ||
       (r.district?.toLowerCase().includes(q) ?? false) || r.phone.includes(q) ||
       ((r as any).faculty?.toLowerCase().includes(q) ?? false)
     return matchStatus && matchSearch
@@ -443,7 +475,15 @@ export default function AdminPage() {
     setCheckedIds((prev) => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n })
   }
 
-  if (!authed) return <LoginScreen onLogin={() => setAuthed(true)} />
+  if (!sessionChecked) {
+    return (
+      <div className="min-h-screen bg-maroon-950 flex items-center justify-center">
+        <Loader2 size={32} className="animate-spin text-white" />
+      </div>
+    )
+  }
+
+  if (!authed) return <LoginScreen onLogin={handleLoginSuccess} />
 
   return (
     <div className="min-h-screen bg-gray-100">
@@ -465,7 +505,7 @@ export default function AdminPage() {
               <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
               <span className="hidden sm:inline">รีเฟรช</span>
             </button>
-            <button onClick={() => setAuthed(false)}
+            <button onClick={handleLogout}
               className="flex items-center gap-2 px-3 py-2 bg-white/10 hover:bg-white/20 rounded-xl text-sm transition-colors">
               <Lock size={14} />
               <span className="hidden sm:inline">ออก</span>
@@ -512,7 +552,7 @@ export default function AdminPage() {
           <div className="relative flex-1">
             <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
             <input id="admin-search" type="text" value={search} onChange={(e) => setSearch(e.target.value)}
-              placeholder="ค้นหาชื่อ, คณะ, อำเภอ, เบอร์โทร..."
+              placeholder="ค้นหาชื่อ, รหัสนักศึกษา, คณะ, อำเภอ, เบอร์โทร..."
               className="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-200 text-sm outline-none focus:ring-2 focus:ring-maroon-500 focus:border-transparent" />
           </div>
           <div className="relative">
@@ -555,7 +595,7 @@ export default function AdminPage() {
                           : <Square size={18} />}
                       </button>
                     </th>
-                    {['#', 'ชื่อ-นามสกุล', 'คณะ / สาขา', 'โทรศัพท์', 'อำเภอ', 'เส้นทาง', 'สถานะ', 'แผนที่', 'วันที่', ''].map((h) => (
+                    {['#', 'ชื่อ-นามสกุล', 'รหัสนักศึกษา', 'คณะ / สาขา', 'โทรศัพท์', 'อำเภอ', 'เส้นทาง', 'สถานะ', 'แผนที่', 'วันที่', ''].map((h) => (
                       <th key={h} className="px-3 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider whitespace-nowrap">{h}</th>
                     ))}
                   </tr>
@@ -578,6 +618,15 @@ export default function AdminPage() {
                         <td className="px-3 py-3">
                           <p className="font-semibold text-gray-900 whitespace-nowrap">{r.full_name}</p>
                           <p className="text-xs text-gray-400 font-mono">{r.id.slice(0, 8).toUpperCase()}</p>
+                        </td>
+                        <td className="px-3 py-3">
+                          {r.student_id ? (
+                            <span className="font-mono text-xs font-semibold text-maroon-700 bg-maroon-50 px-2 py-0.5 rounded-md border border-maroon-100 whitespace-nowrap">
+                              {r.student_id}
+                            </span>
+                          ) : (
+                            <span className="text-gray-300 text-xs">-</span>
+                          )}
                         </td>
                         <td className="px-3 py-3">
                           {(r as any).faculty ? (

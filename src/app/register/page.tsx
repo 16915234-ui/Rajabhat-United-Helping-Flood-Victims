@@ -37,6 +37,7 @@ type LatLng = { lat: number; lng: number }
 
 type FormData = {
   full_name: string
+  student_id: string    // รหัสนักศึกษา
   phone: string
   line_id: string
   faculty: string
@@ -176,6 +177,7 @@ export default function RegisterPage() {
   const [step, setStep] = useState(1)
   const [formData, setFormData] = useState<FormData>({
     full_name: '',
+    student_id: '',
     phone: '',
     line_id: '',
     faculty: '',
@@ -190,7 +192,7 @@ export default function RegisterPage() {
   const [location, setLocation] = useState<LatLng | null>(null)
   const [imageFile, setImageFile] = useState<File | null>(null)
   const [imagePreview, setImagePreview] = useState<string | null>(null)
-  const [errors, setErrors] = useState<Partial<Record<keyof FormData | 'image', string>>>({})
+  const [errors, setErrors] = useState<Partial<Record<keyof FormData | 'image' | 'location', string>>>({})
   const [submitting, setSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -223,6 +225,7 @@ export default function RegisterPage() {
     const e: typeof errors = {}
     if (s === 1) {
       if (!formData.full_name.trim()) e.full_name = 'กรุณากรอกชื่อ-นามสกุล'
+      if (!formData.student_id.trim()) e.student_id = 'กรุณากรอกรหัสนักศึกษา'
       if (!formData.faculty) e.faculty = 'กรุณาเลือกคณะ'
       if (!formData.major) e.major = 'กรุณาเลือกสาขาวิชา'
       if (!formData.phone.trim()) e.phone = 'กรุณากรอกเบอร์โทรศัพท์'
@@ -236,6 +239,7 @@ export default function RegisterPage() {
       if (!imageFile) e.image = 'กรุณาอัปโหลดรูปถ่ายสภาพบ้าน'
     }
     if (s === 3) {
+      if (!location) e.location = 'กรุณาระบุพิกัดตำแหน่งบ้านบนแผนที่ (กด "ตำแหน่งของฉัน" หรือแตะบนแผนที่)'
       if (!formData.access_condition) e.access_condition = 'กรุณาเลือกสภาพเส้นทาง'
     }
     setErrors(e)
@@ -263,6 +267,7 @@ export default function RegisterPage() {
         .from('relief_registrations')
         .insert({
           full_name: formData.full_name.trim(),
+          student_id: formData.student_id.trim() || null,
           user_type: 'student',
           faculty: formData.faculty,
           major: formData.major,
@@ -293,6 +298,7 @@ export default function RegisterPage() {
     setStep(1)
     setFormData({
       full_name: '',
+      student_id: '',
       phone: '',
       line_id: '',
       faculty: '',
@@ -375,6 +381,23 @@ export default function RegisterPage() {
                   </label>
                   <IconInput icon={<User size={16} />} error={errors.full_name}>
                     <input id="full_name" type="text" value={formData.full_name} onChange={(e) => update('full_name', e.target.value)} placeholder="เช่น นายสมชาย ใจดี" className={inputCls} />
+                  </IconInput>
+                </div>
+
+                {/* Student ID */}
+                <div>
+                  <label htmlFor="student_id" className="block text-sm font-semibold text-gray-700 mb-2">
+                    รหัสนักศึกษา <span className="text-red-500">*</span>
+                  </label>
+                  <IconInput icon={<Hash size={16} />} error={errors.student_id}>
+                    <input
+                      id="student_id"
+                      type="text"
+                      value={formData.student_id}
+                      onChange={(e) => update('student_id', e.target.value)}
+                      placeholder="เช่น 6514210001"
+                      className={inputCls}
+                    />
                   </IconInput>
                 </div>
 
@@ -561,20 +584,42 @@ export default function RegisterPage() {
 
                 {/* Interactive Map */}
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-1">
-                    ปักหมุดตำแหน่งบ้าน <span className="text-gray-400 font-normal">(แนะนำ แต่ไม่บังคับ)</span>
-                  </label>
-                  <p className="text-xs text-gray-400 mb-3">ช่วยให้ทีมงานค้นหาบ้านท่านได้แม่นยำยิ่งขึ้น</p>
-                  <Suspense fallback={
-                    <div className="w-full h-64 rounded-2xl bg-gray-100 flex items-center justify-center border border-gray-200">
-                      <div className="flex items-center gap-2 text-gray-400">
-                        <Loader2 size={20} className="animate-spin" />
-                        <span className="text-sm">กำลังโหลดแผนที่...</span>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="block text-sm font-semibold text-gray-700">
+                      ปักหมุดตำแหน่งบ้าน / พิกัด GPS <span className="text-red-500">* (จำเป็นต้องระบุ)</span>
+                    </label>
+                    {location && (
+                      <span className="text-xs text-green-700 font-bold flex items-center gap-1 bg-green-50 px-2.5 py-1 rounded-lg border border-green-200">
+                        <CheckCircle size={13} className="text-green-600" /> ปักหมุดแล้ว
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-xs text-gray-500 mb-3">
+                    กดปุ่ม <strong>&quot;ตำแหน่งของฉัน&quot;</strong> เพื่อดึงพิกัดจาก GPS อัตโนมัติ หรือคลิกบนแผนที่เพื่อระบุตำแหน่ง
+                  </p>
+                  <div className={`transition-all ${errors.location ? 'ring-2 ring-red-400 rounded-2xl p-1 bg-red-50/40' : ''}`}>
+                    <Suspense fallback={
+                      <div className="w-full h-64 rounded-2xl bg-gray-100 flex items-center justify-center border border-gray-200">
+                        <div className="flex items-center gap-2 text-gray-400">
+                          <Loader2 size={20} className="animate-spin" />
+                          <span className="text-sm">กำลังโหลดแผนที่...</span>
+                        </div>
                       </div>
-                    </div>
-                  }>
-                    <LocationPicker value={location} onChange={setLocation} />
-                  </Suspense>
+                    }>
+                      <LocationPicker
+                        value={location}
+                        onChange={(loc) => {
+                          setLocation(loc)
+                          setErrors((p) => ({ ...p, location: undefined }))
+                        }}
+                      />
+                    </Suspense>
+                  </div>
+                  {errors.location && (
+                    <p className="text-red-500 text-xs mt-2 flex items-center gap-1.5 font-medium">
+                      <AlertCircle size={13} className="flex-shrink-0" /> {errors.location}
+                    </p>
+                  )}
                 </div>
 
                 {/* Access Condition */}
