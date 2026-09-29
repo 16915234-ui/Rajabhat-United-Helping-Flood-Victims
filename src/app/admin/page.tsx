@@ -319,12 +319,35 @@ function BulkBar({
 // ── Login Screen ──────────────────────────────────────────────────────────
 function LoginScreen({ onLogin }: { onLogin: () => void }) {
   const [pw, setPw] = useState('')
-  const [error, setError] = useState(false)
-  const handleLogin = () => {
-    const adminPw = process.env.NEXT_PUBLIC_ADMIN_PASSWORD || 'admin1234'
-    if (pw === adminPw) { onLogin() }
-    else { setError(true) }
+  const [error, setError] = useState<string | null>(null)
+  const [submitting, setSubmitting] = useState(false)
+
+  const handleLogin = async () => {
+    if (!pw.trim()) {
+      setError('กรุณากรอกรหัสผ่าน')
+      return
+    }
+    setSubmitting(true)
+    setError(null)
+    try {
+      const res = await fetch('/api/admin/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: pw }),
+      })
+      const data = await res.json()
+      if (res.ok && data.success) {
+        onLogin()
+      } else {
+        setError(data.message || 'รหัสผ่านไม่ถูกต้อง')
+      }
+    } catch {
+      setError('เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์')
+    } finally {
+      setSubmitting(false)
+    }
   }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-maroon-950 via-maroon-900 to-maroon-800 flex items-center justify-center p-4">
       <div className="bg-white rounded-3xl shadow-2xl p-8 w-full max-w-sm">
@@ -338,14 +361,26 @@ function LoginScreen({ onLogin }: { onLogin: () => void }) {
         <div className="space-y-4">
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-2">รหัสผ่าน</label>
-            <input id="admin-password" type="password" value={pw} onChange={(e) => { setPw(e.target.value); setError(false) }}
-              onKeyDown={(e) => e.key === 'Enter' && handleLogin()} placeholder="กรอกรหัสผ่าน" autoFocus
-              className={`w-full px-4 py-3 rounded-xl border text-sm outline-none transition-all focus:ring-2 focus:ring-maroon-500 ${error ? 'border-red-400' : 'border-gray-200'}`} />
-            {error && <p className="text-red-500 text-xs mt-1 flex items-center gap-1"><AlertCircle size={12} /> รหัสผ่านไม่ถูกต้อง</p>}
+            <input
+              id="admin-password"
+              type="password"
+              value={pw}
+              onChange={(e) => { setPw(e.target.value); setError(null) }}
+              onKeyDown={(e) => e.key === 'Enter' && !submitting && handleLogin()}
+              placeholder="กรอกรหัสผ่าน"
+              autoFocus
+              className={`w-full px-4 py-3 rounded-xl border text-sm outline-none transition-all focus:ring-2 focus:ring-maroon-500 ${error ? 'border-red-400' : 'border-gray-200'}`}
+            />
+            {error && <p className="text-red-500 text-xs mt-1 flex items-center gap-1"><AlertCircle size={12} /> {error}</p>}
           </div>
-          <button id="admin-login-btn" onClick={handleLogin}
-            className="w-full py-3 bg-maroon-700 hover:bg-maroon-600 text-white font-bold rounded-xl transition-all active:scale-95">
-            เข้าสู่ระบบ
+          <button
+            id="admin-login-btn"
+            onClick={handleLogin}
+            disabled={submitting}
+            className="w-full py-3 bg-maroon-700 hover:bg-maroon-600 disabled:opacity-70 text-white font-bold rounded-xl transition-all active:scale-95 flex items-center justify-center gap-2"
+          >
+            {submitting ? <Loader2 size={16} className="animate-spin" /> : null}
+            {submitting ? 'กำลังตรวจสอบ...' : 'เข้าสู่ระบบ'}
           </button>
         </div>
       </div>
@@ -365,27 +400,33 @@ export default function AdminPage() {
   const [selected, setSelected] = useState<ReliefRegistration | null>(null)
   const [checkedIds, setCheckedIds] = useState<Set<string>>(new Set())
 
-  // Restore session from localStorage on mount
+  // Verify session with server on mount
   useEffect(() => {
-    try {
-      const saved = localStorage.getItem('aru_admin_session')
-      if (saved === 'true') {
-        setAuthed(true)
+    const checkAuth = async () => {
+      try {
+        const res = await fetch('/api/admin/verify')
+        const data = await res.json()
+        if (data.authed) {
+          setAuthed(true)
+        } else {
+          setAuthed(false)
+        }
+      } catch {
+        setAuthed(false)
+      } finally {
+        setSessionChecked(true)
       }
-    } catch (_) {}
-    setSessionChecked(true)
+    }
+    checkAuth()
   }, [])
 
   const handleLoginSuccess = () => {
-    try {
-      localStorage.setItem('aru_admin_session', 'true')
-    } catch (_) {}
     setAuthed(true)
   }
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
     try {
-      localStorage.removeItem('aru_admin_session')
+      await fetch('/api/admin/logout', { method: 'POST' })
     } catch (_) {}
     setAuthed(false)
   }
