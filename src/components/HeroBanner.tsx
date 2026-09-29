@@ -1,7 +1,5 @@
 'use client'
 
-import { PhoneCall } from 'lucide-react'
-
 interface HeroBannerProps {
   title?: string
   subtitle?: string
@@ -53,18 +51,6 @@ export default function HeroBanner({
           <p className="text-white/80 text-sm sm:text-base font-normal leading-relaxed">
             {subtitle}
           </p>
-        </div>
-
-        {/* ── Official Contact Pill ── */}
-        <div className="mt-5 inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/10 backdrop-blur-md border border-white/15 text-white/90 text-xs sm:text-sm font-medium shadow-sm">
-          <PhoneCall size={14} className="text-gold-300 flex-shrink-0" />
-          <span>
-            สายด่วนประสานงาน:{' '}
-            <a href="tel:035221222" className="text-gold-300 hover:underline font-mono font-bold">
-              035-221-222
-            </a>{' '}
-            (มรภ.พระนครศรีอยุธยา)
-          </span>
         </div>
 
         {/* Optional child slot (e.g. search box in /track) */}
