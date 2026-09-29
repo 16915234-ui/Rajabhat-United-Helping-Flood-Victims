@@ -29,14 +29,11 @@ export default function Navbar() {
             />
             <span className="h-6 w-px bg-gradient-to-b from-gray-200 via-gray-300 to-gray-200 hidden sm:block" />
             <div className="flex flex-col">
-              <span className="text-xs sm:text-sm font-bold tracking-tight text-maroon-900 group-hover:text-maroon-700 transition-colors flex items-center gap-1.5">
+              <span className="text-xs sm:text-sm font-bold tracking-tight text-maroon-900 group-hover:text-maroon-700 transition-colors">
                 ราชภัฏร่วมใจ ช่วยภัยน้ำท่วม
-                <span className="hidden md:inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-50 text-amber-800 border border-amber-200/60 shadow-2xs">
-                  จิตอาสา
-                </span>
               </span>
               <span className="text-[10px] text-gray-400 font-medium tracking-wider hidden sm:block">
-                ศูนย์ประสานงานช่วยเหลือผู้ประสบอุทกภัย
+                ระบบลงทะเบียนขอรับความช่วยเหลือ
               </span>
             </div>
           </Link>

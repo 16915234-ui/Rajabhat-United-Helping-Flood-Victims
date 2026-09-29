@@ -160,10 +160,8 @@ function TrackContent() {
 
       {/* ── Magnificent ARU Hero Banner ── */}
       <HeroBanner
-        badgeText="ระบบติดตามสถานะการช่วยเหลือ มรภ.พระนครศรีอยุธยา"
         title="ติดตามสถานะการขอรับความช่วยเหลือ"
-        subtitle="ป้อนรหัสติดตามที่ได้รับหลังจากการลงทะเบียน เพื่อตรวจสอบความคืบหน้าการช่วยเหลือแบบเรียลไทม์"
-        showStats={false}
+        subtitle="ป้อนรหัสติดตามที่ได้รับหลังจากการลงทะเบียน เพื่อตรวจสอบความคืบหน้าการช่วยเหลือ"
       >
         {/* Search Box inside Hero Banner */}
         <form onSubmit={handleFormSubmit} className="max-w-xl mx-auto mt-2">
