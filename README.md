@@ -44,3 +44,11 @@ The form defaults to Ayutthaya and supports all 77 provinces. Province changes c
 Admin area filters combine with status, delivery and text filters. Excel export uses the filtered list; selected-row export uses the selected rows. Old records without recognizable location data appear when area filters are cleared.
 
 Checks: `node --test tests/registration-details.test.cjs` and `npx tsc --noEmit`.
+
+## Deleting registrations and photos
+
+The authenticated admin delete API removes uploaded objects from `flood-photos` before deleting registration rows. It reads both `image_url` and `image_urls`, supports single and bulk deletion, and ignores external URLs and other buckets. Set `SUPABASE_SECRET_KEY` (or `SUPABASE_SERVICE_ROLE_KEY`) on the server; the API does not use the public anonymous key for cleanup.
+
+Storage and database deletion are separate operations. If storage removal fails, the rows remain available for retry (some images may already be removed). If database deletion fails after cleanup, retry the deletion; missing files do not prevent retry. Previously orphaned photos, whose registration rows were deleted before this fix, require a separate reviewed cleanup.
+
+Tests: `node --test tests/delete-registrations.test.cjs tests/registration-details.test.cjs`. Storage removal uses the [Supabase remove API](https://supabase.com/docs/reference/javascript/file-buckets-remove).

@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 import crypto from 'crypto'
 import { createClient } from '@supabase/supabase-js'
+import { deleteRegistrations } from '@/lib/delete-registrations'
 
 export async function POST(request: Request) {
   try {
@@ -26,13 +27,13 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 })
     }
 
-    // 2. Parse request body
     const body = await request.json()
-    const { id, ids } = body
-
-    if (!id && (!ids || !Array.isArray(ids) || ids.length === 0)) {
-      return NextResponse.json({ success: false, message: 'Missing id or ids' }, { status: 400 })
+    const requestedIds = body?.id ? [body.id] : body?.ids
+    if (!Array.isArray(requestedIds) || requestedIds.length === 0 || requestedIds.length > 500 ||
+      requestedIds.some((id: unknown) => typeof id !== 'string' || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id))) {
+      return NextResponse.json({ success: false, message: 'รหัสรายการไม่ถูกต้อง หรือเลือกเกิน 500 รายการ' }, { status: 400 })
     }
+    const ids = [...new Set(requestedIds as string[])]
 
     // 3. Create server-side Supabase client with secret key (bypasses RLS)
     const supabaseUrl =
@@ -40,46 +41,15 @@ export async function POST(request: Request) {
       process.env.NEXT_PUBLIC_SUPABASE_URL ||
       'https://szqsktwlexdxlsmgshod.supabase.co'
 
-    // Use decoded secret key so Vercel always has service role permissions without RLS blocks
-    const DEFAULT_SECRET = Buffer.from(
-      'c2Jfc2VjcmV0X1E0dWRRV0NyUFFhYWVWYVoxcHU2WEFfQzY0Z0tSOTA=',
-      'base64'
-    ).toString('utf8')
-
-    const supabaseKey =
-      process.env.SUPABASE_SECRET_KEY ||
-      DEFAULT_SECRET ||
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
-      ''
-
-    const supabaseAdmin = createClient(supabaseUrl, supabaseKey)
-
-    if (id) {
-      const { data, error } = await supabaseAdmin
-        .from('relief_registrations')
-        .delete()
-        .eq('id', id)
-        .select()
-
-      if (error) {
-        return NextResponse.json({ success: false, message: error.message }, { status: 500 })
-      }
-      if (!data || data.length === 0) {
-        return NextResponse.json({ success: false, message: 'ไม่พบข้อมูล หรือไม่สามารถลบได้ในระบบ' }, { status: 404 })
-      }
-    } else if (ids && ids.length > 0) {
-      const { error } = await supabaseAdmin
-        .from('relief_registrations')
-        .delete()
-        .in('id', ids)
-        .select()
-
-      if (error) {
-        return NextResponse.json({ success: false, message: error.message }, { status: 500 })
-      }
+    const supabaseKey = process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY
+    if (!supabaseKey) {
+      return NextResponse.json({ success: false, message: 'ยังไม่ได้ตั้งค่าคีย์ฝั่งเซิร์ฟเวอร์สำหรับลบข้อมูลและรูปภาพ' }, { status: 500 })
     }
-
-    return NextResponse.json({ success: true })
+    const supabaseAdmin = createClient(supabaseUrl, supabaseKey, {
+      auth: { persistSession: false, autoRefreshToken: false },
+    })
+    const result = await deleteRegistrations(supabaseAdmin, supabaseUrl, ids)
+    return NextResponse.json({ success: true, ...result })
   } catch (err: unknown) {
     return NextResponse.json(
       { success: false, message: err instanceof Error ? err.message : 'Delete failed' },
