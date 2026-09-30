@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, Suspense } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
+import HousePhotoGallery from '@/components/HousePhotoGallery'
 import Navbar from '@/components/Navbar'
 import HeroBanner from '@/components/HeroBanner'
 import { supabase, ReliefRegistration } from '@/lib/supabase'
@@ -443,19 +444,7 @@ function TrackContent() {
                 </div>
               )}
 
-              {/* House Photo Preview (Only for delivery to home) */}
-              {record.image_url && !(record.delivery_method === 'self_pickup' || (record.address && record.address.includes('กองพัฒนานักศึกษา')) || record.district === 'กองพัฒนานักศึกษา') && (
-                <div className="rounded-2xl overflow-hidden border border-gray-200">
-                  <div className="bg-gray-100 px-4 py-2 text-xs font-semibold text-gray-600 flex items-center gap-1.5">
-                    <Waves size={13} /> รูปถ่ายสภาพบ้านและน้ำท่วม
-                  </div>
-                  <img
-                    src={record.image_url}
-                    alt="รูปถ่ายสภาพบ้าน"
-                    className="w-full max-h-72 object-cover"
-                  />
-                </div>
-              )}
+              <HousePhotoGallery record={record} />
 
               {/* Action Links */}
               <div className="flex flex-col sm:flex-row gap-3 pt-4">

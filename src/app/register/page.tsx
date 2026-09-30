@@ -1,8 +1,11 @@
 'use client'
 
-import { useState, useRef, lazy, Suspense } from 'react'
+import { useState, lazy, Suspense } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import AddressSelects from '@/components/AddressSelects'
+import HousePhotos from '@/components/HousePhotos'
+import addresses from '@/data/thai-addresses.json'
 import Navbar from '@/components/Navbar'
 import HeroBanner from '@/components/HeroBanner'
 import { supabase } from '@/lib/supabase'
@@ -194,12 +197,10 @@ export default function RegisterPage() {
     access_condition: '',
   })
   const [location, setLocation] = useState<LatLng | null>(null)
-  const [imageFile, setImageFile] = useState<File | null>(null)
-  const [imagePreview, setImagePreview] = useState<string | null>(null)
+  const [imageFiles, setImageFiles] = useState<(File | null)[]>([null, null, null])
   const [errors, setErrors] = useState<Partial<Record<keyof FormData | 'image' | 'location', string>>>({})
   const [submitting, setSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
-  const fileInputRef = useRef<HTMLInputElement>(null)
 
   const selectedFaculty = FACULTIES.find((f) => f.name === formData.faculty)
   const majorList = selectedFaculty?.majors ?? []
@@ -214,15 +215,17 @@ export default function RegisterPage() {
     setErrors((prev) => ({ ...prev, [field]: undefined }))
   }
 
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
-    if (file.size > 10 * 1024 * 1024) { setErrors((p) => ({ ...p, image: 'ขนาดไฟล์ต้องไม่เกิน 10MB' })); return }
-    setImageFile(file)
-    setErrors((p) => ({ ...p, image: undefined }))
-    const reader = new FileReader()
-    reader.onload = (ev) => setImagePreview(ev.target?.result as string)
-    reader.readAsDataURL(file)
+  const handleImageChange = (index: number, file: File | null) => {
+    if (file && !['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
+      setErrors((prev) => ({ ...prev, image: 'กรุณาเลือกไฟล์ JPG, PNG หรือ WebP' }))
+      return
+    }
+    if (file && file.size > 10 * 1024 * 1024) {
+      setErrors((prev) => ({ ...prev, image: 'ขนาดไฟล์แต่ละภาพต้องไม่เกิน 10MB' }))
+      return
+    }
+    setImageFiles((prev) => prev.map((current, slot) => slot === index ? file : current))
+    setErrors((prev) => ({ ...prev, image: undefined }))
   }
 
   const isSelfPickup = formData.delivery_method === 'self_pickup'
@@ -243,8 +246,11 @@ export default function RegisterPage() {
       if (!formData.sub_district.trim()) e.sub_district = 'กรุณากรอกตำบล / แขวง'
       if (!formData.district.trim()) e.district = 'กรุณากรอกอำเภอ / เขต'
       if (!formData.province.trim()) e.province = 'กรุณากรอกจังหวัด'
-      // รูปถ่ายบ้านบังคับเฉพาะกรณีลงพื้นที่
-      if (!isSelfPickup && !imageFile) e.image = 'กรุณาอัปโหลดรูปถ่ายสภาพบ้าน'
+      const districts = (addresses as Record<string, Record<string, string[]>>)[formData.province]
+      if (!districts) e.province = 'กรุณาเลือกจังหวัดจากรายการ'
+      if (!districts?.[formData.district]) e.district = 'กรุณาเลือกอำเภอ / เขตจากรายการ'
+      if (!districts?.[formData.district]?.includes(formData.sub_district)) e.sub_district = 'กรุณาเลือกตำบล / แขวงจากรายการ'
+      if (!imageFiles.some(Boolean)) e.image = 'กรุณาอัปโหลดรูปถ่ายสภาพบ้าน'
     }
     if (s === 3) {
       if (!location) e.location = 'กรุณาระบุพิกัดตำแหน่งบ้านบนแผนที่ (กด "ตำแหน่งของฉัน" หรือแตะบนแผนที่)'
@@ -258,10 +264,8 @@ export default function RegisterPage() {
   const prevStep = () => setStep((s) => Math.max(s - 1, 1))
 
   const handleSubmit = async () => {
-    if (isSelfPickup) {
-      if (!validateStep(1) || !validateStep(2)) return
-    } else {
-      if (!validateStep(3)) return
+    for (const requiredStep of (isSelfPickup ? [1, 2] : [1, 2, 3])) {
+      if (!validateStep(requiredStep)) { setStep(requiredStep); return }
     }
     setSubmitting(true)
     setSubmitError(null)
@@ -271,23 +275,23 @@ export default function RegisterPage() {
       const districtVal = formData.district.trim() || null
       const landmarkVal = formData.landmark.trim() || null
 
-      let imageUrl = 'https://images.unsplash.com/photo-1541829070764-84a7d30dd3f3?auto=format&fit=crop&w=800&q=80'
-      let googleMapsLink: string | null = null
-      let accessCond = 'walk'
-
-      if (!isSelfPickup) {
-        if (!imageFile) throw new Error('กรุณาอัปโหลดรูปถ่ายสภาพบ้าน')
-        const ext = imageFile.name.split('.').pop()
-        const fileName = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`
-        const { error: uploadError } = await supabase.storage.from('flood-photos').upload(fileName, imageFile, { cacheControl: '3600', upsert: false })
-        if (uploadError) throw new Error(`อัปโหลดรูปภาพล้มเหลว: ${uploadError.message}`)
+      const { error: schemaError } = await supabase.from('relief_registrations')
+        .select('province,sub_district,image_urls,delivery_method').limit(0)
+      if (schemaError) throw new Error('ระบบยังไม่พร้อมรับข้อมูล กรุณาติดต่อเจ้าหน้าที่หรือลองใหม่อีกครั้ง')
+      const imageUrls: string[] = []
+      for (const file of imageFiles) {
+        if (!file) continue
+        const extension = ({ 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp' } as Record<string, string>)[file.type] || 'jpg'
+        const fileName = crypto.randomUUID() + '.' + extension
+        const { error: uploadError } = await supabase.storage.from('flood-photos').upload(fileName, file, { cacheControl: '3600', upsert: false })
+        if (uploadError) throw new Error('อัปโหลดรูปภาพล้มเหลว กรุณาลองอีกครั้ง: ' + uploadError.message)
         const { data: urlData } = supabase.storage.from('flood-photos').getPublicUrl(fileName)
-        imageUrl = urlData.publicUrl
-        googleMapsLink = location ? `https://www.google.com/maps?q=${location.lat},${location.lng}` : null
-        accessCond = formData.access_condition
+        imageUrls.push(urlData.publicUrl)
       }
+      const googleMapsLink = !isSelfPickup && location ? 'https://www.google.com/maps?q=' + location.lat + ',' + location.lng : null
+      const accessCond = isSelfPickup ? 'walk' : formData.access_condition
 
-      const insertPayload: Record<string, any> = {
+      const insertPayload: Record<string, unknown> = {
         full_name: formData.full_name.trim(),
         student_id: formData.student_id.trim() || null,
         user_type: 'student',
@@ -297,7 +301,10 @@ export default function RegisterPage() {
         line_id: formData.line_id.trim() || null,
         address: fullAddress,
         district: districtVal,
-        image_url: imageUrl,
+        province: formData.province,
+        sub_district: formData.sub_district,
+        image_url: imageUrls[0],
+        image_urls: imageUrls,
         landmark: landmarkVal,
         google_maps_link: googleMapsLink,
         access_condition: accessCond,
@@ -305,24 +312,13 @@ export default function RegisterPage() {
         status: 'pending',
       }
 
-      let { data, error: insertError } = await supabase
+      const { data, error: insertError } = await supabase
         .from('relief_registrations')
         .insert(insertPayload)
         .select('id')
         .single()
 
-      // Graceful fallback if database column 'delivery_method' doesn't exist yet
-      if (insertError && (insertError.code === 'PGRST204' || insertError.message?.includes('delivery_method'))) {
-        delete insertPayload.delivery_method
-        const retryResult = await supabase
-          .from('relief_registrations')
-          .insert(insertPayload)
-          .select('id')
-          .single()
-        data = retryResult.data
-        insertError = retryResult.error
-      }
-
+      if (insertError?.code === 'PGRST204') throw new Error('ระบบยังไม่พร้อมรับข้อมูลรูปภาพและที่อยู่ กรุณาติดต่อเจ้าหน้าที่ให้อัปเดตฐานข้อมูล')
       if (insertError) throw new Error(`บันทึกข้อมูลล้มเหลว: ${insertError.message}`)
       if (!data) throw new Error('ไม่พบข้อมูลผลลัพธ์การลงทะเบียน')
 
@@ -352,8 +348,7 @@ export default function RegisterPage() {
       access_condition: '',
     })
     setLocation(null)
-    setImageFile(null)
-    setImagePreview(null)
+    setImageFiles([null, null, null])
     setErrors({})
   }
 
@@ -596,7 +591,7 @@ export default function RegisterPage() {
                             มารับของที่กองพัฒนานักศึกษา
                           </span>
                           <p className="text-xs text-gray-500 mt-1 leading-relaxed">
-                            ต้องกรอกที่อยู่เพื่อเก็บข้อมูล ไม่ต้องถ่ายรูปบ้านหรือปักหมุดแผนที่
+                            ต้องกรอกที่อยู่เพื่อเก็บข้อมูล แนบภาพบ้านอย่างน้อย 1 ภาพ โดยไม่ต้องปักหมุดแผนที่
                           </p>
                         </div>
                       </div>
@@ -618,7 +613,7 @@ export default function RegisterPage() {
                             ท่านสามารถเดินทางมารับสิ่งของช่วยเหลือด้วยตนเองได้ในวันและเวลาทำการ
                           </p>
                           <p className="text-emerald-900 font-semibold pt-1">
-                            📋 กรุณากรอกที่อยู่บ้านในขั้นตอนถัดไปเพื่อเก็บข้อมูล (ไม่ต้องถ่ายรูปบ้านหรือปักหมุดแผนที่)
+                            📋 กรุณากรอกที่อยู่บ้านในขั้นตอนถัดไปเพื่อเก็บข้อมูล (แนบภาพบ้านอย่างน้อย 1 ภาพ โดยไม่ต้องปักหมุดแผนที่)
                           </p>
                         </div>
                       </div>
@@ -644,7 +639,7 @@ export default function RegisterPage() {
                   </p>
                   <p className="text-xs text-gray-500">
                     {isSelfPickup
-                      ? 'กรุณากรอกที่อยู่บ้านเพื่อเก็บข้อมูลในระบบ (ไม่ต้องถ่ายรูปบ้าน)'
+                      ? 'กรุณาระบุที่อยู่และแนบภาพบ้านที่ได้รับความเสียหายอย่างน้อย 1 ภาพ เพื่อประกอบการขอรับความช่วยเหลือ'
                       : 'กรุณากรอกข้อมูลให้ครบถ้วน เพื่อให้ทีมงานจิตอาสาเข้าถึงพื้นที่ได้อย่างแม่นยำ'}
                   </p>
                 </div>
@@ -667,87 +662,13 @@ export default function RegisterPage() {
                     </IconInput>
                   </div>
 
-                  {/* ตำบล / แขวง */}
-                  <div>
-                    <label htmlFor="sub_district" className="block text-sm font-semibold text-gray-700 mb-2">
-                      ตำบล / แขวง <span className="text-red-500">*</span>
-                    </label>
-                    <IconInput icon={<Building2 size={16} />} error={errors.sub_district}>
-                      <input
-                        id="sub_district"
-                        type="text"
-                        value={formData.sub_district}
-                        onChange={(e) => update('sub_district', e.target.value)}
-                        placeholder="เช่น ประตูชัย"
-                        className={inputCls}
-                      />
-                    </IconInput>
-                  </div>
-
-                  {/* อำเภอ / เขต */}
-                  <div>
-                    <label htmlFor="district" className="block text-sm font-semibold text-gray-700 mb-2">
-                      อำเภอ / เขต <span className="text-red-500">*</span>
-                    </label>
-                    <IconInput icon={<MapPin size={16} />} error={errors.district}>
-                      <input
-                        id="district"
-                        type="text"
-                        value={formData.district}
-                        onChange={(e) => update('district', e.target.value)}
-                        placeholder="เช่น พระนครศรีอยุธยา"
-                        className={inputCls}
-                      />
-                    </IconInput>
-                  </div>
-
-                  {/* จังหวัด */}
-                  <div>
-                    <label htmlFor="province" className="block text-sm font-semibold text-gray-700 mb-2">
-                      จังหวัด <span className="text-red-500">*</span>
-                    </label>
-                    <IconInput icon={<Flag size={16} />} error={errors.province}>
-                      <input
-                        id="province"
-                        type="text"
-                        value={formData.province}
-                        onChange={(e) => update('province', e.target.value)}
-                        placeholder="เช่น พระนครศรีอยุธยา"
-                        className={inputCls}
-                      />
-                    </IconInput>
-                  </div>
+                  <AddressSelects value={formData} errors={errors} onChange={(address) => {
+                    setFormData((prev) => ({ ...prev, ...address }))
+                    setErrors((prev) => ({ ...prev, province: undefined, district: undefined, sub_district: undefined }))
+                  }} />
                 </div>
 
-                {/* Photo Upload — แสดงเฉพาะกรณีลงพื้นที่ */}
-                {!isSelfPickup && (
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">
-                      รูปถ่ายสภาพบ้าน <span className="text-red-500">*</span>
-                    </label>
-                    <input ref={fileInputRef} id="house_photo" type="file" accept="image/*" className="hidden" onChange={handleImageChange} />
-                    {imagePreview ? (
-                      <div className="relative rounded-2xl overflow-hidden border-2 border-maroon-300 group cursor-pointer" onClick={() => fileInputRef.current?.click()}>
-                        <img src={imagePreview} alt="Preview" className="w-full h-52 object-cover" />
-                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2 text-white font-semibold text-sm">
-                          <Camera size={20} /> เปลี่ยนรูป
-                        </div>
-                      </div>
-                    ) : (
-                      <button type="button" onClick={() => fileInputRef.current?.click()}
-                        className={`w-full h-40 rounded-2xl border-2 border-dashed flex flex-col items-center justify-center gap-3 transition-all duration-200 ${errors.image ? 'border-red-400 bg-red-50' : 'border-gray-300 bg-gray-50 hover:border-maroon-400 hover:bg-maroon-50'}`}>
-                        <div className="w-12 h-12 rounded-full bg-white shadow flex items-center justify-center">
-                          <Upload size={20} className="text-maroon-600" />
-                        </div>
-                        <div className="text-center">
-                          <p className="font-semibold text-gray-700 text-sm">คลิกเพื่ออัปโหลดรูปภาพ</p>
-                          <p className="text-xs text-gray-400 mt-1">JPG, PNG, HEIC (สูงสุด 10MB)</p>
-                        </div>
-                      </button>
-                    )}
-                    {errors.image && <p className="text-red-500 text-xs mt-1.5 flex items-center gap-1.5"><AlertCircle size={12} className="flex-shrink-0" /> {errors.image}</p>}
-                  </div>
-                )}
+                <HousePhotos files={imageFiles} onChange={handleImageChange} error={errors.image} />
               </div>
             )}
 

@@ -2,6 +2,8 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import Image from 'next/image'
+import HousePhotoGallery from '@/components/HousePhotoGallery'
+import { registrationArea, matchesArea } from '@/lib/registration-details'
 import * as XLSX from 'xlsx'
 import { supabase, ReliefRegistration, isSelfPickup } from '@/lib/supabase'
 import {
@@ -43,7 +45,9 @@ function exportToExcel(records: ReliefRegistration[]) {
       'เบอร์โทร': r.phone,
       'Line ID': r.line_id ?? '-',
       'ที่อยู่': r.address,
-      'อำเภอ': r.district ?? '-',
+      'จังหวัด': registrationArea(r).province || '-',
+      'อำเภอ': registrationArea(r).district || '-',
+      'ตำบล': registrationArea(r).sub_district || '-',
       'จุดสังเกต': r.landmark ?? '-',
       'Google Maps': r.google_maps_link ?? '-',
       'สภาพเส้นทาง': isSelf ? 'เดินมารับเองที่กองพัฒน์ฯ' : (ACCESS_LABELS[r.access_condition]?.label ?? r.access_condition),
@@ -53,11 +57,7 @@ function exportToExcel(records: ReliefRegistration[]) {
   })
   const ws = XLSX.utils.json_to_sheet(rows)
   // Column widths
-  ws['!cols'] = [
-    { wch: 6 }, { wch: 10 }, { wch: 24 }, { wch: 16 }, { wch: 22 }, { wch: 28 }, { wch: 40 },
-    { wch: 14 }, { wch: 16 }, { wch: 40 }, { wch: 18 }, { wch: 24 },
-    { wch: 40 }, { wch: 22 }, { wch: 16 }, { wch: 22 },
-  ]
+  ws['!cols'] = Object.keys(rows[0] || {}).map((key) => ({ wch: key === 'ที่อยู่' || key === 'Google Maps' ? 40 : 22 }))
   const wb = XLSX.utils.book_new()
   XLSX.utils.book_append_sheet(wb, ws, 'ข้อมูลผู้ลงทะเบียน')
   XLSX.writeFile(wb, `flood-relief-${new Date().toISOString().slice(0, 10)}.xlsx`)
@@ -198,14 +198,7 @@ function DetailModal({
           )}
 
           {/* House Photo */}
-          {record.image_url && !isSelfPickup(record) && (
-            <div className="rounded-2xl overflow-hidden border border-gray-200 shadow-sm">
-              <img src={record.image_url} alt="สภาพบ้าน" className="w-full h-52 object-cover" />
-              <div className="px-3 py-2 bg-gray-50 text-xs text-gray-500 flex items-center gap-1">
-                <Waves size={12} /> รูปถ่ายสภาพบ้าน
-              </div>
-            </div>
-          )}
+          <HousePhotoGallery record={record} />
 
           {/* Info Grid */}
           <div className="grid grid-cols-2 gap-4 bg-gray-50 rounded-2xl p-4">
@@ -451,6 +444,7 @@ export default function AdminPage() {
   const [loading, setLoading] = useState(false)
   const [bulkLoading, setBulkLoading] = useState(false)
   const [search, setSearch] = useState('')
+  const [areaFilter, setAreaFilter] = useState({ province: '', district: '', sub_district: '' })
   const [statusFilter, setStatusFilter] = useState<string>('all')
   const [deliveryFilter, setDeliveryFilter] = useState<'all' | 'delivery' | 'self_pickup'>('all')
   const [selected, setSelected] = useState<ReliefRegistration | null>(null)
@@ -497,6 +491,12 @@ export default function AdminPage() {
 
   useEffect(() => { if (authed) fetchData() }, [authed, fetchData])
 
+  const areaOptions = {
+    province: [...new Set(records.map((r) => registrationArea(r).province).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'th')),
+    district: [...new Set(records.filter((r) => matchesArea(r, { ...areaFilter, district: '', sub_district: '' })).map((r) => registrationArea(r).district).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'th')),
+    sub_district: [...new Set(records.filter((r) => matchesArea(r, { ...areaFilter, sub_district: '' })).map((r) => registrationArea(r).sub_district).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'th')),
+  }
+
   // ── Filtering ──
   const filtered = records.filter((r) => {
     const matchStatus = statusFilter === 'all' || r.status === statusFilter
@@ -510,7 +510,7 @@ export default function AdminPage() {
       (r.student_id?.toLowerCase().includes(q) ?? false) ||
       (r.district?.toLowerCase().includes(q) ?? false) || r.phone.includes(q) ||
       ((r as any).faculty?.toLowerCase().includes(q) ?? false)
-    return matchStatus && matchDelivery && matchSearch
+    return matchStatus && matchDelivery && matchSearch && matchesArea(r, areaFilter)
   })
 
   // ── Stats ──
@@ -758,6 +758,19 @@ export default function AdminPage() {
             </div>
           </div>
 
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+            {([{ key: 'province', label: 'จังหวัด' }, { key: 'district', label: 'อำเภอ / เขต' }, { key: 'sub_district', label: 'ตำบล / แขวง' }] as const).map(({ key, label }) => <div key={key}>
+              <label htmlFor={'admin-' + key} className="mb-1 block text-xs font-semibold text-gray-600">{label}</label>
+              <select id={'admin-' + key} className="input-field" value={areaFilter[key]} onChange={(event) => {
+                setAreaFilter((prev) => ({ ...prev, [key]: event.target.value, ...(key === 'province' ? { district: '', sub_district: '' } : key === 'district' ? { sub_district: '' } : {}) }))
+                setCheckedIds(new Set())
+              }}>
+                <option value="">ทุก{label}</option>
+                {areaOptions[key].map((name) => <option key={name} value={name}>{name}</option>)}
+              </select>
+            </div>)}
+          </div>
+          {(areaFilter.province || areaFilter.district || areaFilter.sub_district) && <button type="button" className="text-xs font-semibold text-maroon-700 underline" onClick={() => { setAreaFilter({ province: '', district: '', sub_district: '' }); setCheckedIds(new Set()) }}>ล้างตัวกรองพื้นที่</button>}
           {/* Quick Pill Tabs for Delivery Filter */}
           <div className="flex flex-wrap items-center gap-2 pt-1 border-t border-gray-100 text-xs">
             <span className="text-gray-400 font-medium mr-1 flex items-center gap-1">
@@ -823,7 +836,7 @@ export default function AdminPage() {
                             : <Square size={18} />}
                       </button>
                     </th>
-                    {['#', 'ชื่อ-นามสกุล', 'รหัสนักศึกษา', 'คณะ / สาขา', 'โทรศัพท์', 'รูปแบบการรับ', 'อำเภอ / สถานที่', 'เส้นทาง', 'สถานะ', 'แผนที่', 'วันที่', ''].map((h) => (
+                    {['#', 'ชื่อ-นามสกุล', 'รหัสนักศึกษา', 'คณะ / สาขา', 'โทรศัพท์', 'รูปแบบการรับ', 'พื้นที่บ้านที่ประสบภัย', 'เส้นทาง', 'สถานะ', 'แผนที่', 'วันที่', ''].map((h) => (
                       <th key={h} className="px-3 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider whitespace-nowrap">{h}</th>
                     ))}
                   </tr>
@@ -886,11 +899,8 @@ export default function AdminPage() {
                         </td>
 
                         <td className="px-3 py-3 text-xs whitespace-nowrap">
-                          {isSelf ? (
-                            <span className="text-emerald-800 font-medium">กองพัฒนานักศึกษา</span>
-                          ) : (
-                            <span className="text-gray-600">{r.district || '-'}</span>
-                          )}
+                          <span className="text-gray-600">{registrationArea(r).district || '-'}</span>
+                          <p className="text-xs text-gray-500">{[registrationArea(r).sub_district, registrationArea(r).province].filter(Boolean).join(' · ')}</p>
                         </td>
 
                         <td className="px-3 py-3 whitespace-nowrap">

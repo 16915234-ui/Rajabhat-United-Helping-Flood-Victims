@@ -22,6 +22,9 @@ export type ReliefRegistration = {
   line_id: string | null
   address: string
   district: string | null
+  province?: string | null
+  sub_district?: string | null
+  image_urls?: string[] | null
   image_url: string
   landmark: string | null
   google_maps_link: string | null

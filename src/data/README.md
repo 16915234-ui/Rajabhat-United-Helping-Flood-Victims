@@ -1,0 +1,1 @@
+Thai address data derived from https://github.com/thailand-geography-data/thailand-geography-json (MIT). Downloaded 2026-09-30. Only Thai province, district, and subdistrict names are retained. See THAILAND-GEOGRAPHY-LICENSE.
