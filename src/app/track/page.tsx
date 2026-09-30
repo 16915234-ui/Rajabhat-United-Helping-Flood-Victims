@@ -29,12 +29,14 @@ import {
   Building2,
 } from 'lucide-react'
 
-const STATUS_STEPS = [
+const getStatusSteps = (isSelfPickup: boolean) => [
   {
     key: 'pending',
     step: 1,
     label: 'รับเรื่องแล้ว',
-    desc: 'ทีมงานได้รับข้อมูลแล้ว กำลังตรวจสอบและจัดเตรียมคิวช่วยเหลือ',
+    desc: isSelfPickup
+      ? 'ทีมงานได้รับข้อมูลแล้ว กำลังตรวจสอบและจัดเตรียมสิ่งของช่วยเหลือ'
+      : 'ทีมงานได้รับข้อมูลแล้ว กำลังตรวจสอบและจัดคิวลงพื้นที่',
     icon: Clock,
     color: 'yellow',
   },
@@ -42,7 +44,9 @@ const STATUS_STEPS = [
     key: 'in_progress',
     step: 2,
     label: 'กำลังดำเนินการ',
-    desc: 'อาสาสมัครและทีมงานกำลังเดินทาง หรือส่งมอบสิ่งของช่วยเหลือ',
+    desc: isSelfPickup
+      ? 'สิ่งของช่วยเหลือพร้อมให้มารับแล้ว ท่านสามารถเดินทางมารับได้ที่กองพัฒนานักศึกษา มรภ.พระนครศรีอยุธยา'
+      : 'อาสาสมัครและทีมงานกำลังเดินทางลงพื้นที่ หรืออยู่ระหว่างทางเพื่อส่งมอบสิ่งของช่วยเหลือ',
     icon: Truck,
     color: 'blue',
   },
@@ -50,7 +54,9 @@ const STATUS_STEPS = [
     key: 'completed',
     step: 3,
     label: 'ให้ความช่วยเหลือแล้ว',
-    desc: 'การส่งมอบความช่วยเหลือสำเร็จเรียบร้อยแล้ว',
+    desc: isSelfPickup
+      ? 'ท่านได้รับสิ่งของช่วยเหลือเรียบร้อยแล้ว ขอให้ท่านและครอบครัวโชคดีมีความสุขสวัสดิ์'
+      : 'การส่งมอบความช่วยเหลือถึงบ้านสำเร็จเรียบร้อยแล้ว',
     icon: CheckCircle,
     color: 'green',
   },
@@ -171,7 +177,9 @@ function TrackContent() {
     setTimeout(() => setCopied(false), 2000)
   }
 
+  const isSelfPickup = record?.delivery_method === 'self_pickup'
   const currentStepIdx = record ? (STATUS_INDEX[record.status] ?? 0) : 0
+  const statusSteps = getStatusSteps(isSelfPickup)
   const accessConfig = record ? ACCESS_LABELS[record.access_condition] : null
   const AccIcon = accessConfig?.Icon ?? Truck
 
@@ -268,7 +276,7 @@ function TrackContent() {
             <div className="py-4">
               <h2 className="text-sm font-bold text-gray-700 mb-6">ความคืบหน้าการช่วยเหลือ</h2>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 relative">
-                {STATUS_STEPS.map((st, idx) => {
+                {statusSteps.map((st, idx) => {
                   const isDone = idx <= currentStepIdx
                   const isCurrent = idx === currentStepIdx
                   const StIcon = st.icon
