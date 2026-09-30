@@ -330,7 +330,7 @@ function TrackContent() {
                       <span className="text-xs text-emerald-700 font-semibold">(ไม่ต้องลงพื้นที่)</span>
                     </div>
                     <p className="text-xs text-emerald-900 leading-relaxed font-medium mt-1">
-                      ท่านเลือกมารับสิ่งของด้วยตนเอง ณ กองพัฒนานักศึกษา อาคาร 1 ชั้น 1 มรภ.พระนครศรีอยุธยา (สายด่วน: 035-221-222)
+                      ท่านเลือกมารับสิ่งของด้วยตนเอง ณ กองพัฒนานักศึกษา มรภ.พระนครศรีอยุธยา
                     </p>
                   </div>
                 </div>
@@ -415,19 +415,11 @@ function TrackContent() {
                     <Building2 size={14} className="text-emerald-600" /> สถานที่รับสิ่งของช่วยเหลือ
                   </p>
                   <p className="text-sm text-gray-900 leading-relaxed font-bold">
-                    กองพัฒนานักศึกษา มหาวิทยาลัยราชภัฏพระนครศรีอยุธยา (อาคาร 1 ชั้น 1)
+                    กองพัฒนานักศึกษา มหาวิทยาลัยราชภัฏพระนครศรีอยุธยา
                   </p>
                   <p className="text-xs text-gray-600 mt-1">
                     เลขที่ 96 หมู่ 2 ถนนปรีดีพนมยงค์ ตำบลประตูชัย อำเภอพระนครศรีอยุธยา จังหวัดพระนครศรีอยุธยา 13000
                   </p>
-                  <div className="mt-3 bg-white p-3 rounded-xl border border-emerald-100 flex items-center justify-between flex-wrap gap-2">
-                    <div className="flex items-center gap-2 text-xs text-gray-700">
-                      <Phone size={14} className="text-emerald-600" />
-                      <span>สายด่วนประสานงานกองพัฒนานักศึกษา:</span>
-                      <a href="tel:035221222" className="font-bold text-emerald-800 hover:underline">035-221-222</a>
-                    </div>
-                    <span className="text-xs text-gray-500">วันจันทร์ - ศุกร์ ในวันและเวลาทำการ</span>
-                  </div>
                 </div>
               ) : (
                 <div className="bg-blue-50/70 border border-blue-100 rounded-2xl p-5">

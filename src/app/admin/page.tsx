@@ -177,7 +177,7 @@ function DetailModal({
                   <span className="text-xs text-emerald-700 font-semibold">(ไม่ต้องลงพื้นที่)</span>
                 </div>
                 <p className="text-xs text-emerald-800 leading-relaxed font-medium mt-1">
-                  ผู้ขอรับความช่วยเหลือจะเดินทางมารับสิ่งของด้วยตนเอง ณ กองพัฒนานักศึกษา อาคาร 1 มรภ.พระนครศรีอยุธยา (โทร. 035-221-222)
+                  ผู้ขอรับความช่วยเหลือจะเดินทางมารับสิ่งของด้วยตนเอง ณ กองพัฒนานักศึกษา มรภ.พระนครศรีอยุธยา
                 </p>
               </div>
             </div>
