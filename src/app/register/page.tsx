@@ -389,12 +389,12 @@ export default function RegisterPage() {
                 <div key={s.id} className="flex flex-col items-center gap-2">
                   <div
                     className={`w-10 h-10 rounded-full flex items-center justify-center transition-all duration-300 ${isSkipped
-                        ? 'bg-gray-100 text-gray-300 border-2 border-dashed border-gray-200'
-                        : isDone
-                          ? 'bg-green-500 text-white shadow-md'
-                          : isActive
-                            ? 'bg-maroon-700 text-white shadow-lg scale-110'
-                            : 'bg-white text-gray-400 border-2 border-gray-200'
+                      ? 'bg-gray-100 text-gray-300 border-2 border-dashed border-gray-200'
+                      : isDone
+                        ? 'bg-green-500 text-white shadow-md'
+                        : isActive
+                          ? 'bg-maroon-700 text-white shadow-lg scale-110'
+                          : 'bg-white text-gray-400 border-2 border-gray-200'
                       }`}
                   >
                     {isSkipped ? (
@@ -407,12 +407,12 @@ export default function RegisterPage() {
                   </div>
                   <span
                     className={`text-xs font-medium hidden sm:block ${isSkipped
-                        ? 'text-gray-300 line-through'
-                        : isActive
-                          ? 'text-maroon-700 font-bold'
-                          : isDone
-                            ? 'text-green-600'
-                            : 'text-gray-400'
+                      ? 'text-gray-300 line-through'
+                      : isActive
+                        ? 'text-maroon-700 font-bold'
+                        : isDone
+                          ? 'text-green-600'
+                          : 'text-gray-400'
                       }`}
                   >
                     {s.title} {isSkipped && '(ข้าม)'}
@@ -548,8 +548,8 @@ export default function RegisterPage() {
                       id="choice-delivery"
                       onClick={() => update('delivery_method', 'delivery')}
                       className={`p-4 rounded-2xl border-2 cursor-pointer transition-all ${formData.delivery_method === 'delivery'
-                          ? 'border-maroon-600 bg-maroon-50/70 shadow-sm ring-1 ring-maroon-500'
-                          : 'border-gray-200 bg-white hover:border-gray-300'
+                        ? 'border-maroon-600 bg-maroon-50/70 shadow-sm ring-1 ring-maroon-500'
+                        : 'border-gray-200 bg-white hover:border-gray-300'
                         }`}
                     >
                       <div className="flex items-start gap-3">
@@ -576,8 +576,8 @@ export default function RegisterPage() {
                       id="choice-self-pickup"
                       onClick={() => update('delivery_method', 'self_pickup')}
                       className={`p-4 rounded-2xl border-2 cursor-pointer transition-all ${formData.delivery_method === 'self_pickup'
-                          ? 'border-emerald-600 bg-emerald-50/70 shadow-sm ring-1 ring-emerald-500'
-                          : 'border-gray-200 bg-white hover:border-gray-300'
+                        ? 'border-emerald-600 bg-emerald-50/70 shadow-sm ring-1 ring-emerald-500'
+                        : 'border-gray-200 bg-white hover:border-gray-300'
                         }`}
                     >
                       <div className="flex items-start gap-3">

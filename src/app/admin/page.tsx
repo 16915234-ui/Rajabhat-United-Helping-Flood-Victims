@@ -13,18 +13,18 @@ import {
 
 // ── Constants ────────────────────────────────────────────────────────────
 const STATUS_CONFIG = {
-  pending:     { label: 'รอดำเนินการ',    color: 'badge-pending',     dot: 'bg-yellow-400', bg: 'bg-yellow-50',  text: 'text-yellow-700' },
-  in_progress: { label: 'กำลังดำเนินการ', color: 'badge-in_progress', dot: 'bg-blue-400',   bg: 'bg-blue-50',    text: 'text-blue-700'   },
-  completed:   { label: 'เสร็จสิ้น',      color: 'badge-completed',   dot: 'bg-green-400',  bg: 'bg-green-50',   text: 'text-green-700'  },
+  pending: { label: 'รอดำเนินการ', color: 'badge-pending', dot: 'bg-yellow-400', bg: 'bg-yellow-50', text: 'text-yellow-700' },
+  in_progress: { label: 'กำลังดำเนินการ', color: 'badge-in_progress', dot: 'bg-blue-400', bg: 'bg-blue-50', text: 'text-blue-700' },
+  completed: { label: 'เสร็จสิ้น', color: 'badge-completed', dot: 'bg-green-400', bg: 'bg-green-50', text: 'text-green-700' },
 }
 const ALL_STATUSES = ['pending', 'in_progress', 'completed'] as const
 type Status = ReliefRegistration['status']
 
 const ACCESS_LABELS: Record<string, { label: string; Icon: React.ElementType; color: string }> = {
-  car:    { label: 'รถยนต์',      Icon: Car,        color: 'text-slate-500'  },
-  pickup: { label: 'รถกระบะยกสูง', Icon: Truck,      color: 'text-orange-500' },
-  boat:   { label: 'เรือเท่านั้น', Icon: Ship,       color: 'text-blue-500'   },
-  walk:   { label: 'เดินเท้า',    Icon: Footprints, color: 'text-emerald-600' },
+  car: { label: 'รถยนต์', Icon: Car, color: 'text-slate-500' },
+  pickup: { label: 'รถกระบะยกสูง', Icon: Truck, color: 'text-orange-500' },
+  boat: { label: 'เรือเท่านั้น', Icon: Ship, color: 'text-blue-500' },
+  walk: { label: 'เดินเท้า', Icon: Footprints, color: 'text-emerald-600' },
 }
 
 // ── Excel Export ─────────────────────────────────────────────────────────
@@ -403,7 +403,7 @@ function LoginScreen({ onLogin }: { onLogin: () => void }) {
             <Lock size={28} className="text-white" />
           </div>
           <h1 className="text-xl font-bold text-gray-900">Admin Dashboard</h1>
-          <p className="text-gray-500 text-sm mt-1">ราชภัฏร่วมใจ ช่วยภัยน้ำท่วม</p>
+          <p className="text-gray-500 text-sm mt-1">ราชภัฏอยุธยาร่วมใจ ช่วยภัยน้ำท่วม</p>
         </div>
         <div className="space-y-4">
           <div>
@@ -475,7 +475,7 @@ export default function AdminPage() {
   const handleLogout = async () => {
     try {
       await fetch('/api/admin/logout', { method: 'POST' })
-    } catch (_) {}
+    } catch (_) { }
     setAuthed(false)
   }
 
@@ -671,10 +671,10 @@ export default function AdminPage() {
         {/* Stats */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           {[
-            { label: 'ทั้งหมด',         value: stats.total,       icon: Users,        color: 'text-gray-700',   bg: 'bg-white'      },
-            { label: 'รอดำเนินการ',     value: stats.pending,     icon: Clock,        color: 'text-yellow-600', bg: 'bg-yellow-50'  },
-            { label: 'กำลังดำเนินการ',  value: stats.in_progress, icon: TrendingUp,   color: 'text-blue-600',   bg: 'bg-blue-50'    },
-            { label: 'เสร็จสิ้น',       value: stats.completed,   icon: CheckCircle,  color: 'text-green-600',  bg: 'bg-green-50'   },
+            { label: 'ทั้งหมด', value: stats.total, icon: Users, color: 'text-gray-700', bg: 'bg-white' },
+            { label: 'รอดำเนินการ', value: stats.pending, icon: Clock, color: 'text-yellow-600', bg: 'bg-yellow-50' },
+            { label: 'กำลังดำเนินการ', value: stats.in_progress, icon: TrendingUp, color: 'text-blue-600', bg: 'bg-blue-50' },
+            { label: 'เสร็จสิ้น', value: stats.completed, icon: CheckCircle, color: 'text-green-600', bg: 'bg-green-50' },
           ].map((s) => (
             <div key={s.label} className={`${s.bg} rounded-2xl p-5 shadow-sm border border-white/80`}>
               <div className="flex items-center justify-between">
@@ -748,33 +748,30 @@ export default function AdminPage() {
             <button
               type="button"
               onClick={() => setDeliveryFilter('all')}
-              className={`px-3 py-1.5 rounded-xl font-semibold border transition-all ${
-                deliveryFilter === 'all'
+              className={`px-3 py-1.5 rounded-xl font-semibold border transition-all ${deliveryFilter === 'all'
                   ? 'bg-maroon-700 text-white border-maroon-700 shadow-sm'
                   : 'bg-gray-50 text-gray-600 border-gray-200 hover:bg-gray-100'
-              }`}
+                }`}
             >
               ทั้งหมด ({records.length})
             </button>
             <button
               type="button"
               onClick={() => setDeliveryFilter('delivery')}
-              className={`px-3 py-1.5 rounded-xl font-semibold border transition-all flex items-center gap-1.5 ${
-                deliveryFilter === 'delivery'
+              className={`px-3 py-1.5 rounded-xl font-semibold border transition-all flex items-center gap-1.5 ${deliveryFilter === 'delivery'
                   ? 'bg-blue-600 text-white border-blue-600 shadow-sm'
                   : 'bg-blue-50/60 text-blue-700 border-blue-200 hover:bg-blue-100/70'
-              }`}
+                }`}
             >
               <Truck size={13} /> 🚚 ประสงค์ให้ลงพื้นที่ ({stats.delivery})
             </button>
             <button
               type="button"
               onClick={() => setDeliveryFilter('self_pickup')}
-              className={`px-3 py-1.5 rounded-xl font-semibold border transition-all flex items-center gap-1.5 ${
-                deliveryFilter === 'self_pickup'
+              className={`px-3 py-1.5 rounded-xl font-semibold border transition-all flex items-center gap-1.5 ${deliveryFilter === 'self_pickup'
                   ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm'
                   : 'bg-emerald-50/60 text-emerald-700 border-emerald-200 hover:bg-emerald-100/70'
-              }`}
+                }`}
             >
               <Building2 size={13} /> 🏢 รับเองที่กองพัฒนานักศึกษา ({stats.self_pickup})
             </button>
@@ -804,8 +801,8 @@ export default function AdminPage() {
                         {allFilteredChecked
                           ? <CheckSquare size={18} className="text-maroon-700" />
                           : someChecked
-                          ? <MinusSquare size={18} className="text-maroon-500" />
-                          : <Square size={18} />}
+                            ? <MinusSquare size={18} className="text-maroon-500" />
+                            : <Square size={18} />}
                       </button>
                     </th>
                     {['#', 'ชื่อ-นามสกุล', 'รหัสนักศึกษา', 'คณะ / สาขา', 'โทรศัพท์', 'รูปแบบการรับ', 'อำเภอ / สถานที่', 'เส้นทาง', 'สถานะ', 'แผนที่', 'วันที่', ''].map((h) => (
