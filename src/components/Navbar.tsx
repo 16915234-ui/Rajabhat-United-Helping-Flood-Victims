@@ -33,7 +33,7 @@ export default function Navbar() {
             <span className="h-6 w-px bg-gradient-to-b from-gray-200 via-gray-300 to-gray-200 hidden sm:block" />
             <div className="flex flex-col">
               <span className="text-xs sm:text-sm font-bold tracking-tight text-maroon-900 group-hover:text-maroon-700 transition-colors">
-                ราชภัฏร่วมใจ ช่วยภัยน้ำท่วม
+                ราชภัฏอยุธยาร่วมใจ ช่วยภัยน้ำท่วม
               </span>
               <span className="text-[10px] text-gray-400 font-medium tracking-wider hidden sm:block">
                 องค์การนักศึกษา มรภ.พระนครศรีอยุธยา

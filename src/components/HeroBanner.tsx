@@ -8,7 +8,7 @@ interface HeroBannerProps {
 }
 
 export default function HeroBanner({
-  title = 'ราชภัฏร่วมใจ ช่วยภัยน้ำท่วม',
+  title = 'ราชภัฏอยุธยาร่วมใจ ช่วยภัยน้ำท่วม',
   subtitle = 'ระบบลงทะเบียนขอรับความช่วยเหลือผู้ประสบอุทกภัย (สำหรับนักศึกษา)',
   children,
 }: HeroBannerProps) {

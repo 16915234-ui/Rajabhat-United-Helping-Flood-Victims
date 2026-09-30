@@ -1,7 +1,7 @@
 # Project Prompt: Next.js & Supabase Flood Relief Web Application ("Rajabhat Ruam Jai Flood Relief")
 
 ## 1. Project Overview
-Build a modern, mobile-friendly web application for the flood relief project called "ราชภัฏร่วมใจ ช่วยภัยน้ำท่วม" (Rajabhat Ruam Jai Flood Relief) organized by Phranakhon Si Ayutthaya Rajabhat University (ARU) student organization. The app allows flood victims (both students and general citizens) to register for assistance, upload house photos, provide location details, and gives staff/volunteers an admin dashboard to manage and organize relief deployment efficiently.
+Build a modern, mobile-friendly web application for the flood relief project called "ราชภัฏอยุธยาร่วมใจ ช่วยภัยน้ำท่วม" (Rajabhat Ruam Jai Flood Relief) organized by Phranakhon Si Ayutthaya Rajabhat University (ARU) student organization. The app allows flood victims (both students and general citizens) to register for assistance, upload house photos, provide location details, and gives staff/volunteers an admin dashboard to manage and organize relief deployment efficiently.
 
 ## 2. Tech Stack
 - **Framework:** Next.js (App Router, TypeScript)

@@ -645,7 +645,7 @@ export default function AdminPage() {
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <div>
             <h1 className="text-lg sm:text-xl font-bold">Admin Dashboard</h1>
-            <p className="text-white/60 text-xs">ราชภัฏร่วมใจ ช่วยภัยน้ำท่วม — จัดการเคสผู้ประสบภัย</p>
+            <p className="text-white/60 text-xs">ราชภัฏอยุธยาร่วมใจ ช่วยภัยน้ำท่วม — จัดการเคสผู้ประสบภัย</p>
           </div>
           <div className="flex items-center gap-2">
             <button onClick={() => exportToExcel(filtered)}
