@@ -23,12 +23,12 @@ export default function Navbar() {
           {/* Minimal Luxurious Banner Link */}
           <Link href="/register" className="flex items-center gap-3 sm:gap-4 group py-1">
             <Image
-              src="/brand/aru-student-logo.webp"
-              width={480}
-              height={480}
+              src="/brand/aru-logo.png"
+              width={120}
+              height={120}
               priority
-              alt="องค์การนักศึกษา มหาวิทยาลัยราชภัฏพระนครศรีอยุธยา"
-              className="brand-crest h-14 w-14 shrink-0 object-contain sm:h-16 sm:w-16"
+              alt="ตราสัญลักษณ์ มหาวิทยาลัยราชภัฏพระนครศรีอยุธยา"
+              className="brand-crest h-11 w-11 sm:h-12 sm:w-12 shrink-0 object-contain"
             />
             <span className="h-6 w-px bg-gradient-to-b from-gray-200 via-gray-300 to-gray-200 hidden sm:block" />
             <div className="flex flex-col">

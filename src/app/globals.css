@@ -135,9 +135,14 @@ body {
   box-shadow: 0 0 0 3px rgba(144, 0, 32, 0.12);
 }
 
-/* Original brand assets are preserved; presentation is handled in CSS. */
+/* Brand crest presentation */
 .brand-crest {
-  clip-path: polygon(50% 3.5%, 90% 26.5%, 90% 73.5%, 50% 96.5%, 10% 73.5%, 10% 26.5%);
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.08));
+  transition: transform 0.2s ease;
+}
+
+.brand-crest:hover {
+  transform: scale(1.05);
 }
 
 .brand-hero {

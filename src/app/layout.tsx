@@ -18,6 +18,16 @@ export const metadata: Metadata = {
     description: 'ลงทะเบียนขอรับความช่วยเหลือผู้ประสบภัยน้ำท่วม',
     type: 'website',
   },
+  icons: {
+    icon: [
+      { url: '/icon.png', sizes: '512x512', type: 'image/png' },
+      { url: '/favicon.ico', sizes: 'any' },
+    ],
+    shortcut: '/favicon.ico',
+    apple: [
+      { url: '/apple-icon.png', sizes: '180x180', type: 'image/png' },
+    ],
+  },
 }
 
 export default function RootLayout({

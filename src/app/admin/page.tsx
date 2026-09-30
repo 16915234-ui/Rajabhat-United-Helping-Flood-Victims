@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import Image from 'next/image'
 import * as XLSX from 'xlsx'
 import { supabase, ReliefRegistration, isSelfPickup } from '@/lib/supabase'
 import {
@@ -399,8 +400,15 @@ function LoginScreen({ onLogin }: { onLogin: () => void }) {
     <div className="min-h-screen bg-gradient-to-br from-maroon-950 via-maroon-900 to-maroon-800 flex items-center justify-center p-4">
       <div className="bg-white rounded-3xl shadow-2xl p-8 w-full max-w-sm">
         <div className="text-center mb-8">
-          <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-maroon-700 to-maroon-900 flex items-center justify-center mx-auto mb-4 shadow-lg">
-            <Lock size={28} className="text-white" />
+          <div className="mx-auto mb-4 flex items-center justify-center">
+            <Image
+              src="/brand/aru-logo.png"
+              alt="ตราสัญลักษณ์ มหาวิทยาลัยราชภัฏพระนครศรีอยุธยา"
+              width={80}
+              height={80}
+              priority
+              className="w-16 h-16 object-contain drop-shadow-md"
+            />
           </div>
           <h1 className="text-xl font-bold text-gray-900">Admin Dashboard</h1>
           <p className="text-gray-500 text-sm mt-1">ราชภัฏอยุธยาร่วมใจ ช่วยภัยน้ำท่วม</p>
@@ -643,9 +651,19 @@ export default function AdminPage() {
       {/* Admin Header */}
       <header className="bg-gradient-to-r from-maroon-900 to-maroon-800 text-white px-4 sm:px-8 py-4 shadow-lg">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <div>
-            <h1 className="text-lg sm:text-xl font-bold">Admin Dashboard</h1>
-            <p className="text-white/60 text-xs">ราชภัฏอยุธยาร่วมใจ ช่วยภัยน้ำท่วม — จัดการเคสผู้ประสบภัย</p>
+          <div className="flex items-center gap-3">
+            <Image
+              src="/brand/aru-logo.png"
+              alt="ตราสัญลักษณ์ มหาวิทยาลัยราชภัฏพระนครศรีอยุธยา"
+              width={48}
+              height={48}
+              priority
+              className="w-10 h-10 object-contain drop-shadow-sm bg-white/10 rounded-xl p-1 shrink-0"
+            />
+            <div>
+              <h1 className="text-lg sm:text-xl font-bold">Admin Dashboard</h1>
+              <p className="text-white/60 text-xs">ราชภัฏอยุธยาร่วมใจ ช่วยภัยน้ำท่วม — จัดการเคสผู้ประสบภัย</p>
+            </div>
           </div>
           <div className="flex items-center gap-2">
             <button onClick={() => exportToExcel(filtered)}
