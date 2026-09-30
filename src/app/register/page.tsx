@@ -225,6 +225,9 @@ export default function RegisterPage() {
     reader.readAsDataURL(file)
   }
 
+  const isSelfPickup = formData.delivery_method === 'self_pickup'
+  const maxStep = isSelfPickup ? 2 : 3
+
   const validateStep = (s: number): boolean => {
     const e: typeof errors = {}
     if (s === 1) {
@@ -240,7 +243,8 @@ export default function RegisterPage() {
       if (!formData.sub_district.trim()) e.sub_district = 'กรุณากรอกตำบล / แขวง'
       if (!formData.district.trim()) e.district = 'กรุณากรอกอำเภอ / เขต'
       if (!formData.province.trim()) e.province = 'กรุณากรอกจังหวัด'
-      if (!imageFile) e.image = 'กรุณาอัปโหลดรูปถ่ายสภาพบ้าน'
+      // รูปถ่ายบ้านบังคับเฉพาะกรณีลงพื้นที่
+      if (!isSelfPickup && !imageFile) e.image = 'กรุณาอัปโหลดรูปถ่ายสภาพบ้าน'
     }
     if (s === 3) {
       if (!location) e.location = 'กรุณาระบุพิกัดตำแหน่งบ้านบนแผนที่ (กด "ตำแหน่งของฉัน" หรือแตะบนแผนที่)'
@@ -250,27 +254,28 @@ export default function RegisterPage() {
     return Object.keys(e).length === 0
   }
 
-  const nextStep = () => { if (validateStep(step)) setStep((s) => Math.min(s + 1, 3)) }
+  const nextStep = () => { if (validateStep(step)) setStep((s) => Math.min(s + 1, maxStep)) }
   const prevStep = () => setStep((s) => Math.max(s - 1, 1))
 
   const handleSubmit = async () => {
-    const isSelf = formData.delivery_method === 'self_pickup'
-    if (isSelf) {
-      if (!validateStep(1)) return
+    if (isSelfPickup) {
+      if (!validateStep(1) || !validateStep(2)) return
     } else {
       if (!validateStep(3)) return
     }
     setSubmitting(true)
     setSubmitError(null)
     try {
+      // ที่อยู่จากฟอร์ม (ใช้ทั้ง delivery และ self_pickup)
+      const fullAddress = `บ้านเลขที่/หมู่ ${formData.house_no.trim()} ต.${formData.sub_district.trim()} อ.${formData.district.trim()} จ.${formData.province.trim()}`
+      const districtVal = formData.district.trim() || null
+      const landmarkVal = formData.landmark.trim() || null
+
       let imageUrl = 'https://images.unsplash.com/photo-1541829070764-84a7d30dd3f3?auto=format&fit=crop&w=800&q=80'
-      let fullAddress = 'รับสิ่งของด้วยตนเอง ณ กองพัฒนานักศึกษา  มรภ.พระนครศรีอยุธยา'
-      let districtVal: string | null = 'กองพัฒนานักศึกษา'
-      let landmarkVal: string | null = 'กองพัฒนานักศึกษา มรภ.พระนครศรีอยุธยา'
-      let googleMapsLink: string | null = 'https://www.google.com/maps?q=14.3533,100.5658'
+      let googleMapsLink: string | null = null
       let accessCond = 'walk'
 
-      if (!isSelf) {
+      if (!isSelfPickup) {
         if (!imageFile) throw new Error('กรุณาอัปโหลดรูปถ่ายสภาพบ้าน')
         const ext = imageFile.name.split('.').pop()
         const fileName = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`
@@ -279,9 +284,6 @@ export default function RegisterPage() {
         const { data: urlData } = supabase.storage.from('flood-photos').getPublicUrl(fileName)
         imageUrl = urlData.publicUrl
         googleMapsLink = location ? `https://www.google.com/maps?q=${location.lat},${location.lng}` : null
-        fullAddress = `บ้านเลขที่/หมู่ ${formData.house_no.trim()} ต.${formData.sub_district.trim()} อ.${formData.district.trim()} จ.${formData.province.trim()}`
-        districtVal = formData.district.trim() || null
-        landmarkVal = formData.landmark.trim() || null
         accessCond = formData.access_condition
       }
 
@@ -374,16 +376,16 @@ export default function RegisterPage() {
           <div className="h-1.5 bg-gray-200 rounded-full mb-6">
             <div
               className="h-1.5 bg-gradient-to-r from-maroon-700 to-gold-500 rounded-full transition-all duration-500"
-              style={{ width: `${formData.delivery_method === 'self_pickup' ? 100 : progress}%` }}
+              style={{ width: `${((step - 1) / (maxStep - 1)) * 100}%` }}
             />
           </div>
           <div className="flex justify-between">
             {STEPS.map((s) => {
               const Icon = s.icon
-              const isSelf = formData.delivery_method === 'self_pickup'
-              const isSkipped = isSelf && s.id > 1
+              // self_pickup ข้ามเฉพาะ step 3 (ข้อมูลการเดินทาง)
+              const isSkipped = isSelfPickup && s.id === 3
               const isActive = step === s.id && !isSkipped
-              const isDone = isSelf ? (s.id === 1) : (step > s.id)
+              const isDone = isSkipped ? false : (step > s.id)
 
               return (
                 <div key={s.id} className="flex flex-col items-center gap-2">
@@ -427,11 +429,9 @@ export default function RegisterPage() {
         <div className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
           <div className="bg-maroon-50 border-b border-maroon-100 px-6 py-4 flex items-center justify-between">
             <h2 className="font-bold text-maroon-800 text-lg">
-              {formData.delivery_method === 'self_pickup' && step === 1
-                ? 'ข้อมูลนักศึกษา & รับสิ่งของที่กองพัฒนานักศึกษา'
-                : `ขั้นตอนที่ ${step}: ${STEPS[step - 1].title}`}
+              {`ขั้นตอนที่ ${step}: ${STEPS[step - 1].title}`}
             </h2>
-            {formData.delivery_method === 'self_pickup' && (
+            {isSelfPickup && (
               <span className="text-xs font-semibold bg-emerald-100 text-emerald-800 px-3 py-1 rounded-full border border-emerald-200 flex items-center gap-1">
                 <Building2 size={13} /> รับเองที่กองพัฒน์ฯ
               </span>
@@ -596,7 +596,7 @@ export default function RegisterPage() {
                             มารับของที่กองพัฒนานักศึกษา
                           </span>
                           <p className="text-xs text-gray-500 mt-1 leading-relaxed">
-                            สะดวก รวดเร็ว ไม่ต้องกรอกที่อยู่ ไม่ต้องถ่ายรูปบ้าน
+                            ต้องกรอกที่อยู่เพื่อเก็บข้อมูล ไม่ต้องถ่ายรูปบ้านหรือปักหมุดแผนที่
                           </p>
                         </div>
                       </div>
@@ -615,10 +615,10 @@ export default function RegisterPage() {
                             📍 จุดรับสิ่งของช่วยเหลือ: กองพัฒนานักศึกษา มรภ.พระนครศรีอยุธยา
                           </p>
                           <p className="text-emerald-800 leading-relaxed">
-                            ท่านสามารถเดินทางมารับสิ่งของช่วยเหลือด้วยตนเองได้ในวันและเวลาทำการ{' '}
+                            ท่านสามารถเดินทางมารับสิ่งของช่วยเหลือด้วยตนเองได้ในวันและเวลาทำการ
                           </p>
                           <p className="text-emerald-900 font-semibold pt-1">
-                            ✨ ท่านไม่จำเป็นต้องกรอกข้อมูลที่อยู่ รูปถ่ายสภาพบ้าน หรือปักหมุดแผนที่ สามารถกดยืนยันลงทะเบียนด้านล่างได้ทันที
+                            📋 กรุณากรอกที่อยู่บ้านในขั้นตอนถัดไปเพื่อเก็บข้อมูล (ไม่ต้องถ่ายรูปบ้านหรือปักหมุดแผนที่)
                           </p>
                         </div>
                       </div>
@@ -642,7 +642,11 @@ export default function RegisterPage() {
                   <p className="text-xs font-bold text-maroon-900 mb-1 flex items-center gap-1.5">
                     <Home size={14} className="text-maroon-700" /> ระบุข้อมูลที่อยู่บ้านที่ต้องการความช่วยเหลือ
                   </p>
-                  <p className="text-xs text-gray-500">กรุณากรอกข้อมูลให้ครบถ้วน เพื่อให้ทีมงานจิตอาสาเข้าถึงพื้นที่ได้อย่างแม่นยำ</p>
+                  <p className="text-xs text-gray-500">
+                    {isSelfPickup
+                      ? 'กรุณากรอกที่อยู่บ้านเพื่อเก็บข้อมูลในระบบ (ไม่ต้องถ่ายรูปบ้าน)'
+                      : 'กรุณากรอกข้อมูลให้ครบถ้วน เพื่อให้ทีมงานจิตอาสาเข้าถึงพื้นที่ได้อย่างแม่นยำ'}
+                  </p>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -715,33 +719,35 @@ export default function RegisterPage() {
                   </div>
                 </div>
 
-                {/* Photo Upload */}
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    รูปถ่ายสภาพบ้าน <span className="text-red-500">*</span>
-                  </label>
-                  <input ref={fileInputRef} id="house_photo" type="file" accept="image/*" className="hidden" onChange={handleImageChange} />
-                  {imagePreview ? (
-                    <div className="relative rounded-2xl overflow-hidden border-2 border-maroon-300 group cursor-pointer" onClick={() => fileInputRef.current?.click()}>
-                      <img src={imagePreview} alt="Preview" className="w-full h-52 object-cover" />
-                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2 text-white font-semibold text-sm">
-                        <Camera size={20} /> เปลี่ยนรูป
+                {/* Photo Upload — แสดงเฉพาะกรณีลงพื้นที่ */}
+                {!isSelfPickup && (
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                      รูปถ่ายสภาพบ้าน <span className="text-red-500">*</span>
+                    </label>
+                    <input ref={fileInputRef} id="house_photo" type="file" accept="image/*" className="hidden" onChange={handleImageChange} />
+                    {imagePreview ? (
+                      <div className="relative rounded-2xl overflow-hidden border-2 border-maroon-300 group cursor-pointer" onClick={() => fileInputRef.current?.click()}>
+                        <img src={imagePreview} alt="Preview" className="w-full h-52 object-cover" />
+                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2 text-white font-semibold text-sm">
+                          <Camera size={20} /> เปลี่ยนรูป
+                        </div>
                       </div>
-                    </div>
-                  ) : (
-                    <button type="button" onClick={() => fileInputRef.current?.click()}
-                      className={`w-full h-40 rounded-2xl border-2 border-dashed flex flex-col items-center justify-center gap-3 transition-all duration-200 ${errors.image ? 'border-red-400 bg-red-50' : 'border-gray-300 bg-gray-50 hover:border-maroon-400 hover:bg-maroon-50'}`}>
-                      <div className="w-12 h-12 rounded-full bg-white shadow flex items-center justify-center">
-                        <Upload size={20} className="text-maroon-600" />
-                      </div>
-                      <div className="text-center">
-                        <p className="font-semibold text-gray-700 text-sm">คลิกเพื่ออัปโหลดรูปภาพ</p>
-                        <p className="text-xs text-gray-400 mt-1">JPG, PNG, HEIC (สูงสุด 10MB)</p>
-                      </div>
-                    </button>
-                  )}
-                  {errors.image && <p className="text-red-500 text-xs mt-1.5 flex items-center gap-1.5"><AlertCircle size={12} className="flex-shrink-0" /> {errors.image}</p>}
-                </div>
+                    ) : (
+                      <button type="button" onClick={() => fileInputRef.current?.click()}
+                        className={`w-full h-40 rounded-2xl border-2 border-dashed flex flex-col items-center justify-center gap-3 transition-all duration-200 ${errors.image ? 'border-red-400 bg-red-50' : 'border-gray-300 bg-gray-50 hover:border-maroon-400 hover:bg-maroon-50'}`}>
+                        <div className="w-12 h-12 rounded-full bg-white shadow flex items-center justify-center">
+                          <Upload size={20} className="text-maroon-600" />
+                        </div>
+                        <div className="text-center">
+                          <p className="font-semibold text-gray-700 text-sm">คลิกเพื่ออัปโหลดรูปภาพ</p>
+                          <p className="text-xs text-gray-400 mt-1">JPG, PNG, HEIC (สูงสุด 10MB)</p>
+                        </div>
+                      </button>
+                    )}
+                    {errors.image && <p className="text-red-500 text-xs mt-1.5 flex items-center gap-1.5"><AlertCircle size={12} className="flex-shrink-0" /> {errors.image}</p>}
+                  </div>
+                )}
               </div>
             )}
 
@@ -858,7 +864,7 @@ export default function RegisterPage() {
               <ChevronLeft size={18} /> ก่อนหน้า
             </button>
 
-            {formData.delivery_method === 'self_pickup' && step === 1 ? (
+            {isSelfPickup && step === 2 ? (
               <button
                 type="button"
                 id="submit-register"
